@@ -51,18 +51,18 @@ The `.fig` file format is:
   ┌-------------------------------------┐
   |  Header (16 bytes)                  |
   |    magic:        4 bytes  "FIC1"    |
-  |    img\_height:   2 bytes  uint16   |
-  |    img\_width:    2 bytes  uint16   |
-  |    range\_size:   1 byte   uint8    |
-  |    domain\_size:  1 byte   uint8    |
-  |    domain\_stride:1 byte   uint8    |
-  |    bits\_s:       1 byte   uint8    |
-  |    bits\_o:       1 byte   uint8    |
+  |    img_height:   2 bytes  uint16    |
+  |    img_width:    2 bytes  uint16    |
+  |    range_size:   1 byte   uint8     |
+  |    domain_size:  1 byte   uint8     |
+  |    domain_stride:1 byte   uint8     |
+  |    bits_s:       1 byte   uint8     |
+  |    bits_o:       1 byte   uint8     |
   |    reserved:     3 bytes  (padding) |
   |─────────────────────────────────────|
   |  Payload (bitstream)                |
   |    Every fractal code = 29 bits     |
-  |    [domain\_idx | iso | s\_q | o\_q]|
+  |    [domain_idx | iso | s_q | o_q]   |
   └-------------------------------------┘
 ```
 The `.fig` will pack tightly, and padding with zeros if the last byte is less than 1 byte.
