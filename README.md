@@ -67,3 +67,25 @@ The `.fig` will pack tightly, and padding with zeros if the last byte is less th
 
 ## License
 This project is [MIT](https://choosealicense.com/licenses/mit/) licensed.
+
+## Reference
+This repository includes a baseline implementation of the Particle Swarm Optimization (PSO) approach for Fractal Image Compression, as proposed in the following paper:
+
+* **A. Muruganandham and R.S.D. Wahida Banu,** "Adaptive Fractal Image Compression using PSO," *Procedia Computer Science*, vol. 2, pp. 338-344, 2010. [ICEBT 2010]. DOI: [10.1016/j.procs.2010.11.044](https://doi.org/10.1016/j.procs.2010.11.044)
+
+### BibTeX
+If you reference this baseline implementation in your own work, please consider citing the original authors:
+
+\```bibtex
+@article{muruganandham2010adaptive,
+  title={Adaptive Fractal Image Compression using PSO},
+  author={Muruganandham, A. and Wahida Banu, R.S.D.},
+  journal={Procedia Computer Science},
+  volume={2},
+  pages={338--344},
+  year={2010},
+  publisher={Elsevier},
+  note={ICEBT 2010},
+  doi={10.1016/j.procs.2010.11.044}
+}
+\```
