@@ -4,12 +4,14 @@ import sys
  
 import fic_core as core
 from encoders.full_search import encode_full_search
+from encoders.ga import encode_ga
 from encoders.pso import encode_pso
  
 # encoder register
 # encoder: name -> (function, default kwargs)
 METHODS = {
     'full_search': (encode_full_search, {}),
+    'ga': (encode_ga, {}),
     'pso': (encode_pso, {
         'pop_size': 40,
         'max_iter': 30,
