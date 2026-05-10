@@ -6,7 +6,7 @@ In our `encoders/` folder we provide not only the optimal algorithm, but also th
 The code is tested on FreeBSD and Arch Linux (Other Unix-like OS might also run our program successfully). Python>=3.6 is required to run the code.
 
 ## Installation
-Just simply install python>=3.6 and Pillow.
+Just simply install python>=3.6, Numpy and Pillow.
 
 ## Usage
 ### Run Experiments
