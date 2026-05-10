@@ -36,7 +36,7 @@ def pso_search_one_range(r_block, all_iso, n_domain,
                          early_stop_patience=None,
                          rng=None):
     """
-    用 PSO 為單一 range block 搜索最佳 (domain_idx, isometry)。
+    Utilize PSO to search single range block optimal (domain_idx, isometry)。
 
     Args:
         r_block:    range block (8x8)
