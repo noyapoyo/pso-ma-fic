@@ -1,0 +1,21 @@
+# =============================================================================
+# Genetic Algorithm FIC - configuration
+# =============================================================================
+# (Aligned with the existing GA implementation in your repo)
+
+pop_size: 40
+generation: 30
+run: 1
+
+# === Selection / reproduction ===
+tournament_size: 2
+crossover_rate: 0.8
+mutation_rate: 0.2
+elitism: 2
+
+# === Mutation step for domain index ===
+# The isometry gene mutates by replacement.
+domain_mutation_radius: 8
+
+# === Reproducibility ===
+seed: 42

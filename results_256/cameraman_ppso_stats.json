@@ -1,0 +1,26 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 976888,
+  "encoding_time_sec": 48.145,
+  "mse_mean": 106.7046,
+  "mse_max": 4355.1458,
+  "psnr_db": 27.85,
+  "ppso_pop_size": 40,
+  "ppso_max_iter": 30,
+  "ppso_pyramid": [
+    2,
+    6,
+    12,
+    20
+  ],
+  "ppso_w": 0.9,
+  "ppso_c1": 2.0,
+  "ppso_c2": 2.0,
+  "method": "ppso",
+  "image": "cameraman",
+  "psnr_actual": 27.68,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

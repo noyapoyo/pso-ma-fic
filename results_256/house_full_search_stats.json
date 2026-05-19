@@ -1,0 +1,15 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 33554432,
+  "encoding_time_sec": 541.735,
+  "mse_mean": 11.9836,
+  "mse_max": 662.1417,
+  "psnr_db": 37.34,
+  "method": "full_search",
+  "image": "house",
+  "psnr_actual": 37.03,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

@@ -1,0 +1,15 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 33554432,
+  "encoding_time_sec": 543.342,
+  "mse_mean": 70.7768,
+  "mse_max": 1950.1224,
+  "psnr_db": 29.63,
+  "method": "full_search",
+  "image": "lake",
+  "psnr_actual": 29.4,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

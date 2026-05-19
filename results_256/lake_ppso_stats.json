@@ -1,0 +1,26 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 970542,
+  "encoding_time_sec": 47.857,
+  "mse_mean": 150.3781,
+  "mse_max": 4753.0904,
+  "psnr_db": 26.36,
+  "ppso_pop_size": 40,
+  "ppso_max_iter": 30,
+  "ppso_pyramid": [
+    2,
+    6,
+    12,
+    20
+  ],
+  "ppso_w": 0.9,
+  "ppso_c1": 2.0,
+  "ppso_c2": 2.0,
+  "method": "ppso",
+  "image": "lake",
+  "psnr_actual": 26.26,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

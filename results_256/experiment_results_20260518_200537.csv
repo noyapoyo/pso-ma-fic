@@ -1,0 +1,2 @@
+image,method,run_idx,encoding_time_sec,psnr_actual,psnr_db,mse_mean,mse_max,compression_ratio,n_evaluations,fic_file_size_kb,bits_per_code,decode_iterations,fic_file_size_bytes,n_domain,n_range
+cameraman,full_search,0,551.521,31.38,31.55,45.5443,1999.0555,4.41,33554432,16.52,29,20,16912,1024,4096

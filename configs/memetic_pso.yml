@@ -1,0 +1,26 @@
+# =============================================================================
+# Memetic Standard PSO FIC - configuration
+# =============================================================================
+
+# === Swarm parameters ===
+pop_size: 40
+max_iter: 30
+
+# === PSO coefficients ===
+w: 0.9
+c1: 2.0
+c2: 2.0
+v_max_ratio: 0.2
+early_stop_patience: null
+
+# === Local Search configuration ===
+# ls_strategies: ordered list of LS operators applied per refinement step.
+#   Available: 'isometry', 'spatial'
+#   Empty list = no LS (degenerates to plain PSO)
+ls_strategies:
+  - isometry
+  - spatial
+
+ls_frequency: 5           # Apply LS every K iterations
+ls_top_percent: 0.2       # LS applied to top p% particles
+ls_at_end: true           # Final LS pass on gbest before returning

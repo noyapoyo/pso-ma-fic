@@ -1,0 +1,25 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 1424884,
+  "n_evals_global": 1077360,
+  "n_evals_ls": 347524,
+  "ls_triggers": 2436,
+  "ls_improvements": 15573,
+  "encoding_time_sec": 34.927,
+  "mse_mean": 131.7584,
+  "mse_max": 3551.6079,
+  "psnr_db": 26.93,
+  "mpso_pop_size": 40,
+  "mpso_max_iter": 30,
+  "mpso_ls": [
+    "isometry",
+    "spatial"
+  ],
+  "method": "memetic_pso",
+  "image": "lake",
+  "psnr_actual": 26.79,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

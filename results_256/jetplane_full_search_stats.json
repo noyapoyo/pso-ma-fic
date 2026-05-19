@@ -1,0 +1,15 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 33554432,
+  "encoding_time_sec": 542.217,
+  "mse_mean": 48.4127,
+  "mse_max": 1956.3514,
+  "psnr_db": 31.28,
+  "method": "full_search",
+  "image": "jetplane",
+  "psnr_actual": 31.01,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

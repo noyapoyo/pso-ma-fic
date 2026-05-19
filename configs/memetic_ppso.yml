@@ -1,0 +1,24 @@
+# =============================================================================
+# Memetic Pyramid PSO (MPPSO) FIC - configuration ⭐ Proposed Method
+# =============================================================================
+
+# === Swarm parameters ===
+pop_size: 30              # Pyramid [16, 8, 4, 2]
+max_iter: 30
+
+# === PPSO coefficients ===
+w: 0.7
+c1: 1.5
+c2: 1.5
+c3: 1.0
+v_max_ratio: 0.2
+early_stop_patience: null
+
+# === Local Search configuration ===
+ls_strategies:
+  - isometry              # C1: Isometry cycling LS (7 evals)
+  - spatial               # C2: Spatial neighborhood LS (8 evals)
+
+ls_frequency: 5           # Apply LS every K iterations
+ls_top_percent: 0.2       # LS applied to top p% particles
+ls_at_end: true           # Final LS pass on gbest

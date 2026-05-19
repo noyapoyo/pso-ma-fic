@@ -1,0 +1,26 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 902142,
+  "encoding_time_sec": 44.094,
+  "mse_mean": 41.2878,
+  "mse_max": 3296.2088,
+  "psnr_db": 31.97,
+  "ppso_pop_size": 40,
+  "ppso_max_iter": 30,
+  "ppso_pyramid": [
+    2,
+    6,
+    12,
+    20
+  ],
+  "ppso_w": 0.9,
+  "ppso_c1": 2.0,
+  "ppso_c2": 2.0,
+  "method": "ppso",
+  "image": "house",
+  "psnr_actual": 31.77,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

@@ -1,0 +1,15 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 33554432,
+  "encoding_time_sec": 540.442,
+  "mse_mean": 56.9394,
+  "mse_max": 3576.8035,
+  "psnr_db": 30.58,
+  "method": "full_search",
+  "image": "boat",
+  "psnr_actual": 30.27,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

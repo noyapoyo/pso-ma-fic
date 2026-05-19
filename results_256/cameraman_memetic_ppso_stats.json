@@ -1,0 +1,35 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 1044013,
+  "n_evals_global": 771976,
+  "n_evals_ls": 272037,
+  "ls_overhead_pct": 26.06,
+  "ls_triggers": 2389,
+  "ls_improvements": 9152,
+  "ls_improvement_rate_pct": 383.09,
+  "encoding_time_sec": 44.558,
+  "mse_mean": 93.3327,
+  "mse_max": 3492.2447,
+  "psnr_db": 28.43,
+  "mppso_pop_size": 30,
+  "mppso_max_iter": 30,
+  "mppso_pyramid": [
+    2,
+    4,
+    8,
+    16
+  ],
+  "mppso_ls": [
+    "isometry",
+    "spatial"
+  ],
+  "mppso_ls_freq": 5,
+  "mppso_ls_top_pct": 0.2,
+  "method": "memetic_ppso",
+  "image": "cameraman",
+  "psnr_actual": 28.32,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

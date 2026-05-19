@@ -1,0 +1,9 @@
+# =============================================================================
+# Full Search FIC - configuration
+# =============================================================================
+# Full search is the baseline / quality upper bound.
+# It does NOT honor ffe_budget_per_block (it always does exhaustive search).
+# Its FFE usage is fixed: N_domain × 8 per range block.
+
+# No tunable parameters for Full Search.
+# Block sizes are taken from configs/global.yml.

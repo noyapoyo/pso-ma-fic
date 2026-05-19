@@ -1,0 +1,15 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 33554432,
+  "encoding_time_sec": 541.464,
+  "mse_mean": 45.5443,
+  "mse_max": 1999.0555,
+  "psnr_db": 31.55,
+  "method": "full_search",
+  "image": "cameraman",
+  "psnr_actual": 31.38,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

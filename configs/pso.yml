@@ -1,0 +1,19 @@
+# =============================================================================
+# Standard PSO FIC - configuration (Muruganandham 2010)
+# =============================================================================
+
+# === Swarm parameters ===
+pop_size: 40              # Number of particles
+max_iter: 30              # Maximum iterations (capped by ffe_budget_per_block)
+
+# === PSO coefficients ===
+w: 0.9                    # Inertia weight
+c1: 2.0                   # Cognitive coefficient (toward pbest)
+c2: 2.0                   # Social coefficient (toward gbest)
+
+# === Velocity clamping ===
+v_max_ratio: 0.2          # v_max = v_max_ratio × search_range
+
+# === Early stopping ===
+# null → patience = max(3, max_iter * 0.1)
+early_stop_patience: null

@@ -1,0 +1,25 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 1284358,
+  "n_evals_global": 994440,
+  "n_evals_ls": 289918,
+  "ls_triggers": 1947,
+  "ls_improvements": 13092,
+  "encoding_time_sec": 31.689,
+  "mse_mean": 31.0201,
+  "mse_max": 2663.9458,
+  "psnr_db": 33.21,
+  "mpso_pop_size": 40,
+  "mpso_max_iter": 30,
+  "mpso_ls": [
+    "isometry",
+    "spatial"
+  ],
+  "method": "memetic_pso",
+  "image": "house",
+  "psnr_actual": 32.98,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}

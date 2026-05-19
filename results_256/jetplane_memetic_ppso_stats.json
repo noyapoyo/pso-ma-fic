@@ -1,0 +1,35 @@
+{
+  "n_range": 4096,
+  "n_domain": 1024,
+  "n_evaluations": 1069033,
+  "n_evals_global": 783540,
+  "n_evals_ls": 285493,
+  "ls_overhead_pct": 26.71,
+  "ls_triggers": 2536,
+  "ls_improvements": 9480,
+  "ls_improvement_rate_pct": 373.82,
+  "encoding_time_sec": 45.347,
+  "mse_mean": 91.537,
+  "mse_max": 2353.0439,
+  "psnr_db": 28.51,
+  "mppso_pop_size": 30,
+  "mppso_max_iter": 30,
+  "mppso_pyramid": [
+    2,
+    4,
+    8,
+    16
+  ],
+  "mppso_ls": [
+    "isometry",
+    "spatial"
+  ],
+  "mppso_ls_freq": 5,
+  "mppso_ls_top_pct": 0.2,
+  "method": "memetic_ppso",
+  "image": "jetplane",
+  "psnr_actual": 28.32,
+  "compression_ratio": 4.41,
+  "bits_per_code": 29,
+  "decode_iterations": 20
+}
