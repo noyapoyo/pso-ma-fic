@@ -47,16 +47,18 @@ from encoders.pso import encode_pso
 from encoders.ppso import encode_ppso
 from encoders.memetic_pso import encode_memetic_pso
 from encoders.memetic_ppso import encode_memetic_ppso
+from encoders.feature_guided_pso import encode_feature_guided_pso
 
 
 # 註冊所有 encoder (name -> function)
 # 新方法只要在這裡加一行 + 建立對應的 configs/<name>.yml
 # 'full_search':  encode_full_search,
 METHODS = {
-    'pso':          encode_pso,
-    'ppso':         encode_ppso,
-    'memetic_pso':  encode_memetic_pso,
-    'memetic_ppso': encode_memetic_ppso,
+    'pso':                encode_pso,
+    'ppso':               encode_ppso,
+    'memetic_pso':        encode_memetic_pso,
+    'memetic_ppso':       encode_memetic_ppso,
+    'feature_guided_pso': encode_feature_guided_pso,
 }
 
 CONFIGS_DIR = 'configs'

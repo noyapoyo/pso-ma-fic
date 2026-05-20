@@ -1,0 +1,43 @@
+# =============================================================================
+# Feature-Guided PSO (FG-PSO) FIC - configuration  ⭐ Proposed Method
+# =============================================================================
+# 核心 contribution:
+#   將 PSO 的搜尋空間從「全 domain pool × 8 iso」縮減到
+#   「feature-排序前 K 個 domain × 8 iso」, 並在這個子空間上跑 standard PSO
+#   + memetic local search.
+#
+# 對應 standard PSO (Muruganandham 2010, configs/pso.yml):
+#   - 共用相同的 PSO 更新公式 (inertia + cognitive + social)
+#   - 加入 candidate pool reduction (top_k)
+#   - 加入 memetic LS (isometry + feature_neighbor)
+# =============================================================================
+
+# === Candidate pool reduction ===
+top_k: 40                 # 每個 range block 保留多少個 candidate domain
+                          # 256x256 (n_domain=1024) → 25.6x search-space reduction
+                          # 1024x1024 (n_domain=16129) → 403x reduction
+                          # K-sweep 顯示 K=40 在 256x256 上是 sweet spot:
+                          # K=20 PSNR=28.67, K=40 PSNR=28.88, K=60 PSNR=28.77, K=80 PSNR=28.74
+feature_normalize: true   # z-score normalize feature 後再算距離
+
+# === PSO parameters ===
+# 因為搜尋空間縮減 12.8x (8192 → 640), 用較小的 swarm 就夠
+pop_size: 20
+max_iter: 15
+
+# === PSO coefficients (與 standard PSO 相同, Muruganandham 2010) ===
+w: 0.9
+c1: 2.0
+c2: 2.0
+v_max_ratio: 0.2
+early_stop_patience: null
+
+# === Memetic Local Search ===
+ls_strategies:
+  - isometry              # 固定 domain 遍歷 8 種 iso (≤7 evals)
+  - feature_neighbor      # 在 candidate_pool 中 cur_cand_idx 前後 N 個試一次 cur_iso
+
+ls_frequency: 3           # 每 K 個 PSO iter 觸發一次 LS
+ls_top_percent: 0.2       # LS 套用在 top 20% 的粒子
+ls_at_end: true           # 最後對 gbest 再做一次 LS
+feat_neighbors: 4         # feature-neighbor LS 看前後各 4 個 (共 8 evals)
