@@ -136,7 +136,9 @@ def memetic_ppso_search_one_range(
     if early_stop_patience is None:
         early_stop_patience = max(3, int(max_iter * 0.1))
 
-    # LS context：傳給 LS 算子的共用參數
+    convergence_log = []
+
+    # LS context
     ls_context = {
         'n_domain':         n_domain,
         'domain_positions': domain_positions,
@@ -178,6 +180,8 @@ def memetic_ppso_search_one_range(
     gbest_pos = positions[gbest_idx].copy()
     gbest_fit = fitness[gbest_idx]
     gbest_so = so_cache[gbest_idx]
+
+    convergence_log.append((n_evals_global + n_evals_ls, float(gbest_fit)))
 
     no_improve_count = 0
 
@@ -316,6 +320,9 @@ def memetic_ppso_search_one_range(
             gbest_pos = positions[cur_best_idx].copy()
             gbest_so = so_cache[cur_best_idx]
 
+        # Convergence log
+        convergence_log.append((n_evals_global + n_evals_ls, float(gbest_fit)))
+
         # Early stopping
         if gbest_fit < prev_gbest - 1e-10:
             no_improve_count = 0
@@ -324,8 +331,9 @@ def memetic_ppso_search_one_range(
             if no_improve_count >= early_stop_patience:
                 break
 
-    # --- 結束前對 gbest 再做一次 LS（保險）---
-    if ls_at_end and ls_pipeline is not None:
+    # --- 結束前對 gbest 再做一次 LS（須在 budget 內）---
+    budget_ok = ffe_budget is None or (n_evals_global + n_evals_ls) < ffe_budget
+    if ls_at_end and ls_pipeline is not None and budget_ok:
         best_d, best_iso = decode_particle(gbest_pos, n_domain)
         current_sol = {
             'd_idx': best_d,
@@ -370,7 +378,7 @@ def memetic_ppso_search_one_range(
         'n_evals_ls':      n_evals_ls,
         'ls_triggers':     ls_triggers,
         'ls_improvements': ls_improvements,
-    }
+    }, convergence_log
 
 
 # =============================================================================
@@ -450,11 +458,12 @@ def encode_memetic_ppso(image, range_size=8, domain_size=16, domain_stride=8,
     total_evals_ls = 0
     total_ls_triggers = 0
     total_ls_improvements = 0
+    all_conv_logs = []
     rng = np.random.default_rng(seed)
     t0 = time.time()
 
     for r_idx in range(n_range):
-        best, search_stats = memetic_ppso_search_one_range(
+        best, search_stats, conv_log = memetic_ppso_search_one_range(
             range_blocks[r_idx], all_iso, n_domain,
             domain_positions, position_to_idx, domain_stride,
             pop_size=pop_size, max_iter=max_iter,
@@ -472,6 +481,7 @@ def encode_memetic_ppso(image, range_size=8, domain_size=16, domain_stride=8,
         total_evals_ls        += search_stats['n_evals_ls']
         total_ls_triggers     += search_stats['ls_triggers']
         total_ls_improvements += search_stats['ls_improvements']
+        all_conv_logs.append(conv_log)
 
         fractal_codes.append({
             'range_pos':  range_positions[r_idx],
@@ -495,6 +505,11 @@ def encode_memetic_ppso(image, range_size=8, domain_size=16, domain_stride=8,
     encoding_time = time.time() - t0
     total_evals = total_evals_global + total_evals_ls
 
+    # Convergence curve aggregation
+    from convergence import aggregate_convergence
+    budget = ffe_budget_per_block or (pop_size * (max_iter + 1))
+    convergence_curve = aggregate_convergence(all_conv_logs, budget)
+
     all_mse = [c['mse'] for c in fractal_codes]
     mean_mse = float(np.mean(all_mse))
     psnr = 10 * np.log10(255.0 ** 2 / mean_mse) if mean_mse > 0 else float('inf')
@@ -516,6 +531,7 @@ def encode_memetic_ppso(image, range_size=8, domain_size=16, domain_stride=8,
         'mse_mean': round(mean_mse, 4),
         'mse_max':  round(float(np.max(all_mse)), 4),
         'psnr_db':  round(psnr, 2),
+        'convergence_curve': convergence_curve,
         # MPPSO 參數
         'mppso_pop_size':    pop_size,
         'mppso_max_iter':    max_iter,

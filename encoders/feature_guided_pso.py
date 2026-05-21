@@ -247,7 +247,9 @@ def fgpso_search_one_range(r_block, all_iso, candidate_pool,
     if rng is None:
         rng = np.random.default_rng()
     if early_stop_patience is None:
-        early_stop_patience = max(2, int(max_iter * 0.1))
+        early_stop_patience = max(3, int(max_iter * 0.1))
+
+    convergence_log = []
 
     k_cand = len(candidate_pool)
     x_min = np.array([0.0, 0.0])
@@ -281,6 +283,8 @@ def fgpso_search_one_range(r_block, all_iso, candidate_pool,
     gbest_pos = pbest_pos[g_idx].copy()
     gbest_fit = pbest_fit[g_idx]
     gbest_so = pbest_so[g_idx]
+
+    convergence_log.append((n_evals_global + n_evals_ls, float(gbest_fit)))
 
     no_improve_count = 0
 
@@ -385,6 +389,9 @@ def fgpso_search_one_range(r_block, all_iso, candidate_pool,
                                 gbest_pos = positions[j].copy()
                                 gbest_so = (s_j, o_j)
 
+        # Convergence log
+        convergence_log.append((n_evals_global + n_evals_ls, float(gbest_fit)))
+
         # ---- Early stopping ----
         if gbest_fit < prev_gbest - 1e-10:
             no_improve_count = 0
@@ -393,8 +400,9 @@ def fgpso_search_one_range(r_block, all_iso, candidate_pool,
             if no_improve_count >= early_stop_patience:
                 break
 
-    # ---- 結束前對 gbest 再做一次 LS ----
-    if ls_at_end and ls_strategies:
+    # ---- 結束前對 gbest 再做一次 LS（須在 budget 內）----
+    budget_ok = ffe_budget is None or (n_evals_global + n_evals_ls) < ffe_budget
+    if ls_at_end and ls_strategies and budget_ok:
         ci, iso = decode_particle_in_subspace(gbest_pos, k_cand)
         d_idx = int(candidate_pool[ci])
         s_j, o_j = gbest_so
@@ -454,7 +462,7 @@ def fgpso_search_one_range(r_block, all_iso, candidate_pool,
         'n_evals_ls': n_evals_ls,
         'ls_triggers': ls_triggers,
         'ls_improvements': ls_improvements,
-    }
+    }, convergence_log
 
 
 # =============================================================================
@@ -550,11 +558,12 @@ def encode_feature_guided_pso(image,
     print(f"  Running FG-PSO for {n_range} range blocks...")
     fractal_codes = []
     total_g = total_l = total_t = total_i = 0
+    all_conv_logs = []
     rng = np.random.default_rng(seed)
     t0 = time.time()
 
     for r_idx in range(n_range):
-        best, ss = fgpso_search_one_range(
+        best, ss, conv_log = fgpso_search_one_range(
             range_blocks[r_idx], all_iso,
             candidate_pools[r_idx],
             pop_size=pop_size, max_iter=max_iter,
@@ -573,6 +582,7 @@ def encode_feature_guided_pso(image,
         total_l += ss['n_evals_ls']
         total_t += ss['ls_triggers']
         total_i += ss['ls_improvements']
+        all_conv_logs.append(conv_log)
 
         fractal_codes.append({
             'range_pos': range_positions[r_idx],
@@ -597,6 +607,12 @@ def encode_feature_guided_pso(image,
 
     # === Stats ===
     total_evals = total_g + total_l
+
+    # Convergence curve aggregation
+    from convergence import aggregate_convergence
+    budget = ffe_budget_per_block or (pop_size * (max_iter + 1))
+    convergence_curve = aggregate_convergence(all_conv_logs, budget)
+
     all_mse = [c['mse'] for c in fractal_codes]
     mean_mse = float(np.mean(all_mse))
     psnr = 10 * np.log10(255.0 ** 2 / mean_mse) if mean_mse > 0 else float('inf')
@@ -611,6 +627,7 @@ def encode_feature_guided_pso(image,
         'mse_mean': round(mean_mse, 4),
         'mse_max': round(float(np.max(all_mse)), 4),
         'psnr_db': round(psnr, 2),
+        'convergence_curve': convergence_curve,
         # method-specific
         'fgpso_top_k': top_k,
         'fgpso_pop_size': pop_size,

@@ -1,19 +1,21 @@
 # =============================================================================
-# Standard PSO FIC - configuration (Muruganandham 2010)
+# Pyramid PSO (PPSO) FIC - configuration (Li et al. 2022)
 # =============================================================================
+# PPSO 使用金字塔分層競爭合作機制，與 standard PSO 的更新公式不同，
+# 需要使用 PPSO paper 建議的參數，而非 PSO 的參數。
 
 # === Swarm parameters ===
-pop_size: 40              # Number of particles
+pop_size: 30              # 金字塔 [2, 4, 8, 16] (top->bottom)
 max_iter: 30              # Maximum iterations (capped by ffe_budget_per_block)
 
-# === PSO coefficients ===
-w: 0.9                    # Inertia weight
-c1: 2.0                   # Cognitive coefficient (toward pbest)
-c2: 2.0                   # Social coefficient (toward gbest)
+# === PPSO coefficients (Li et al. 2022) ===
+w: 0.7                    # Inertia weight (lower than PSO for stability)
+c1: 1.5                   # Within-layer / upper-layer learning coefficient
+c2: 1.5                   # Top-tier learning coefficient
+c3: 1.0                   # Cross-layer cooperation coefficient
 
 # === Velocity clamping ===
-v_max_ratio: 0.2          # v_max = v_max_ratio × search_range
+v_max_ratio: 0.2          # v_max = v_max_ratio * search_range
 
 # === Early stopping ===
-# null → patience = max(3, max_iter * 0.1)
 early_stop_patience: null

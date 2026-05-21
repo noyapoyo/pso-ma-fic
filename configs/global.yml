@@ -3,16 +3,31 @@
 # =============================================================================
 # This file controls experiment-wide settings shared by all methods.
 # Per-method parameters live in configs/<method>.yml
+#
+# ■ 公平比較機制 (Fair Comparison Protocol)：
+#   當 ffe_budget_per_block 被設定時，run_experiments.py 會自動：
+#     1. 將所有方法的 max_iter 覆寫為 9999（不再是終止條件）
+#     2. 將所有方法的 early_stop_patience 覆寫為 9999（不再提前終止）
+#     3. FFE budget 成為「唯一的終止條件」
+#   這確保所有演算法在完全相同的計算預算下被比較。
+#
+#   每個演算法如何分配 budget（pop_size, LS 頻率等）是演算法設計的一部分，
+#   不需要統一。公平的是「總 FFE 數」，不是「每個 iter 的 FFE 數」。
 
 # === FFE (Fitness Function Evaluations) Budget ===
 # Each range block is allocated this many FFEs.
-# All heuristic methods (PSO, PPSO, Memetic-*) MUST stop when this limit is reached.
-# This ensures fair comparison: methods are evaluated on solution quality
-# under identical computational budget.
+# All heuristic methods MUST stop when this limit is reached.
 #
-# Recommended: 1500~2000 FFE per range block for 256x256 images
-# Full Search uses ~7700 FFE per block; heuristics target ~20-30% of that.
-ffe_budget_per_block: 1500
+# 選擇 budget 的考量：
+#   - PSO  (pop=40):  budget / 40 = 可用 iteration 數
+#   - PPSO (pop=30):  budget / 28 = 可用 iteration 數 (top tier elitism)
+#   - FG-PSO (pop=20): budget / 20 = 可用 iteration 數 (plus LS overhead)
+#   - Memetic 方法: global search + LS 共享 budget
+#
+# 建議：
+#   256x256 (range=8, n_domain~961):  ffe_budget_per_block: 500
+#   1024x1024 (range=4, n_domain~16384): ffe_budget_per_block: 500
+ffe_budget_per_block: 500
 
 # === FIC Partitioning Parameters (must be consistent across methods) ===
 image_size: 256       # Resize input images to this (square) size
@@ -26,7 +41,7 @@ decode_iterations: 20
 # === Reproducibility ===
 seed: 42
 n_runs: 1             # Number of independent runs per (method, image)
-                      # For final paper experiments, set to >= 5 and report mean ± std
+                      # For final paper experiments, set to >= 5 and report mean +/- std
 
 # === Output ===
 output_dir: results

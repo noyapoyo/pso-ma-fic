@@ -117,6 +117,17 @@ def build_encoder_kwargs(method_name, global_cfg, method_cfg):
         if budget is not None:
             kwargs['ffe_budget_per_block'] = budget
 
+            # ■ 公平比較核心：當 FFE budget 設定時，budget 必須是唯一的終止條件
+            #   - max_iter 設為極大值（safety net），不會先於 budget 觸發
+            #   - early_stop_patience 設為極大值，不會提前終止
+            #   這確保所有演算法在相同的 FFE budget 下被公平比較。
+            kwargs['max_iter'] = 9999
+            kwargs['early_stop_patience'] = 9999
+
+    # --no-early-stop: 獨立於 budget，可單獨使用
+    if global_cfg.get('no_early_stop', False):
+        kwargs['early_stop_patience'] = 9999
+
     # Seed (從 global config 注入，若 method config 沒寫)
     if 'seed' not in kwargs and 'seed' in global_cfg:
         kwargs['seed'] = global_cfg['seed']
@@ -278,6 +289,11 @@ def main():
     parser.add_argument('--configs-dir', type=str, default=CONFIGS_DIR)
     parser.add_argument('--n-runs', type=int, default=None,
                         help='每個方法×影像跑幾次 (覆寫 global.yml)')
+    # FFE budget & early stopping
+    parser.add_argument('--ffe-budget', type=int, default=None,
+                        help='FFE budget per range block (覆寫 global.yml)')
+    parser.add_argument('--no-early-stop', action='store_true',
+                        help='禁用 early stopping (設 patience=9999)')
     args = parser.parse_args()
 
     # 讀取全域設定
@@ -289,6 +305,8 @@ def main():
     if args.domain_size   is not None: global_cfg['domain_size']        = args.domain_size
     if args.domain_stride is not None: global_cfg['domain_stride']      = args.domain_stride
     if args.decode_iter   is not None: global_cfg['decode_iterations']  = args.decode_iter
+    if args.ffe_budget    is not None: global_cfg['ffe_budget_per_block'] = args.ffe_budget
+    if args.no_early_stop:             global_cfg['no_early_stop']      = True
 
     output_dir = args.output_dir or global_cfg.get('output_dir', 'results')
     n_runs = args.n_runs if args.n_runs is not None else global_cfg.get('n_runs', 1)
@@ -308,6 +326,7 @@ def main():
     print(f"  Runs per (m, i):   {n_runs}")
     print(f"  Global config:     {args.global_config or 'configs/global.yml'}")
     print(f"  FFE budget/block:  {global_cfg.get('ffe_budget_per_block', 'unlimited')}")
+    print(f"  Early stopping:    {'disabled' if global_cfg.get('no_early_stop') else 'enabled (auto-disabled when budget is set)'}")
     print(f"  Block params:      "
           f"range={global_cfg.get('range_size', 8)}, "
           f"domain={global_cfg.get('domain_size', 16)}, "
@@ -358,6 +377,19 @@ def main():
     # === 輸出表格 + CSV ===
     print_aggregated_table(aggregated, n_runs)
     save_results_csv(all_results, output_dir)
+
+    # === 儲存 convergence data ===
+    from convergence import save_convergence
+    # 按 (image, run_idx) 分組，收集各方法的 convergence curve
+    conv_groups = defaultdict(dict)  # (image, run_idx) → {method: curve}
+    for r in all_results:
+        curve = r.get('convergence_curve')
+        if curve:
+            key = (r['image'], r.get('run_idx', 0))
+            conv_groups[key][r['method']] = curve
+    for (image_name, run_idx), curves in conv_groups.items():
+        path = save_convergence(curves, output_dir, image_name, run_idx)
+        print(f"  Saved convergence: {path}")
 
 
 if __name__ == "__main__":

@@ -213,11 +213,14 @@ def ppso_search_one_range(r_block, all_iso, n_domain,
     Returns:
         best:    dict {'mse', 'd_idx', 'iso', 's', 'o'}
         n_evals: fitness evaluation 次數
+        convergence_log: list of (n_evals, gbest_mse)
     """
     if rng is None:
         rng = np.random.default_rng()
     if early_stop_patience is None:
         early_stop_patience = max(3, int(max_iter * 0.1))
+
+    convergence_log = []
 
     # --- 搜索空間 ---
     x_min = np.array([0.0, 0.0])
@@ -251,6 +254,8 @@ def ppso_search_one_range(r_block, all_iso, n_domain,
     gbest_pos = positions[gbest_idx].copy()
     gbest_fit = fitness[gbest_idx]
     gbest_so = so_cache[gbest_idx]
+
+    convergence_log.append((n_evals, float(gbest_fit)))
 
     no_improve_count = 0
 
@@ -366,6 +371,9 @@ def ppso_search_one_range(r_block, all_iso, n_domain,
             gbest_pos = positions[cur_best_idx].copy()
             gbest_so = so_cache[cur_best_idx]
 
+        # Convergence log
+        convergence_log.append((n_evals, float(gbest_fit)))
+
         # === Early stopping ===
         if gbest_fit < prev_gbest - 1e-10:
             no_improve_count = 0
@@ -394,7 +402,7 @@ def ppso_search_one_range(r_block, all_iso, n_domain,
         'iso': int(best_iso),
         's': float(best_s),
         'o': float(best_o),
-    }, n_evals
+    }, n_evals, convergence_log
 
 
 # =============================================================================
@@ -440,11 +448,12 @@ def encode_ppso(image, range_size=8, domain_size=16, domain_stride=8,
     print(f"  Running PPSO for {n_range} range blocks...")
     fractal_codes = []
     total_evals = 0
+    all_conv_logs = []
     rng = np.random.default_rng(seed)
     t0 = time.time()
 
     for r_idx in range(n_range):
-        best, n_evals = ppso_search_one_range(
+        best, n_evals, conv_log = ppso_search_one_range(
             range_blocks[r_idx], all_iso, n_domain,
             pop_size=pop_size, max_iter=max_iter,
             w=w, c1=c1, c2=c2, c3=c3,
@@ -454,6 +463,7 @@ def encode_ppso(image, range_size=8, domain_size=16, domain_stride=8,
             rng=rng,
         )
         total_evals += n_evals
+        all_conv_logs.append(conv_log)
 
         fractal_codes.append({
             'range_pos': range_positions[r_idx],
@@ -476,6 +486,11 @@ def encode_ppso(image, range_size=8, domain_size=16, domain_stride=8,
 
     encoding_time = time.time() - t0
 
+    # Convergence curve aggregation
+    from convergence import aggregate_convergence
+    budget = ffe_budget_per_block or (pop_size * (max_iter + 1))
+    convergence_curve = aggregate_convergence(all_conv_logs, budget)
+
     all_mse = [c['mse'] for c in fractal_codes]
     mean_mse = float(np.mean(all_mse))
     psnr = 10 * np.log10(255.0 ** 2 / mean_mse) if mean_mse > 0 else float('inf')
@@ -488,6 +503,7 @@ def encode_ppso(image, range_size=8, domain_size=16, domain_stride=8,
         'mse_mean': round(mean_mse, 4),
         'mse_max': round(float(np.max(all_mse)), 4),
         'psnr_db': round(psnr, 2),
+        'convergence_curve': convergence_curve,
         # PPSO-specific
         'ppso_pop_size': pop_size,
         'ppso_max_iter': max_iter,
