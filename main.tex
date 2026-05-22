@@ -58,24 +58,24 @@ To evaluate similarity metrics, each candidate domain block $u$ is down-sampled 
 
 The discrete block-wise contractive affine transformation maps spatial coordinates and intensity metrics simultaneously:
 \begin{equation}
-\Phi \begin{bmatrix} x \\ y \end{bmatrix} = p \begin{bmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{bmatrix} \begin{bmatrix} x \\ y \end{bmatrix} + \begin{bmatrix} t_x \\ t_y \end{bmatrix} + q
+\Phi \begin{bmatrix} x \\ y \end{bmatrix} = p \begin{bmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{bmatrix} \begin{bmatrix} x \\ y \end{bmatrix} + \begin{bmatrix} t_x \\ t_y \end{bmatrix} + q,
 \end{equation}
 where the $2 \times 2$ sub-matrix represents the Dihedral transformation operator $T_k$, $(t_x, t_y)$ establishes the spatial coordinates of the matching domain block, $p$ defines the contrast scaling factor ($\alpha$), and $q$ denotes the brightness offset ($\Delta g$) \cite{FICOriginal}.
 
 Parameter optimization is modeled as an inverse problem minimized using a Mean Squared Error (MSE) or Peak Signal-to-Noise Ratio (PSNR) distortion metric \cite{FICOriginal}. For each pairing, the specific isometry index $d$ is determined via:
 \begin{equation}
-d = \arg\min_{k \in \{0,1,\dots,7\}} \left\{ \text{MSE}(v, p_k u_k + q_k) \right\}
+d = \arg\min_{k \in \{0,1,\dots,7\}} \left\{ \text{MSE}(v, p_k u_k + q_k) \right\},
 \end{equation}
 where the discrete MSE over an $L \times L$ pixel grid is computed as:
 \begin{equation}
-\text{MSE}(v, u) = \frac{1}{L^2} \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} \left( v(i,j) - u(i,j) \right)^2
+\text{MSE}(v, u) = \frac{1}{L^2} \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} \left( v(i,j) - u(i,j) \right)^2.
 \end{equation}
-Applying least-squares regression to minimize this distortion objective yields closed-form solutions for the massic parameters $p$ and $q$:
+Applying least-squares regression to minimize this distortion objective yields closed-form solutions for the mass parameters $p$ and $q$:
 \begin{equation}
-p = \frac{L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) u_k(i,j) - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) \right) \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)}{L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j)^2 - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)^2}
+p = \frac{L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) u_k(i,j) - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) \right) \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)}{L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j)^2 - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)^2},
 \end{equation}
 \begin{equation}
-q = \frac{1}{L^2} \left[ \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) - p \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right]
+q = \frac{1}{L^2} \left[ \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) - p \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right].
 \end{equation}
 
 The resulting code vectors—comprising spatial coordinates $(t_x, t_y)$, orientation index $d$, scale factor $p$, and offset $q$—are uniformly quantized and bit-allocated for transmission. Image reconstruction at the decoder operates recursively by applying these mapped transformations onto an arbitrary initial image profile. Based on the Partitioned Iteration Function System (PIFS) model and Banach's fixed-point theorem, the processing sequence yields a convergent Cauchy sequence that terminates at a unique invariant attractor image.
@@ -83,54 +83,36 @@ The resulting code vectors—comprising spatial coordinates $(t_x, t_y)$, orient
 \subsection{Acceleration Techniques in FIC}
 Although capable of guaranteeing high compression ratios and reconstruction fidelity, conventional FIC is constrained by an exhaustive search strategy \cite{241507}. Because each independent range block must iterate through every permutation of domain blocks across all eight orientations, the computational overhead is exceedingly high, limiting real-time practical utility \cite{241507}.
 
-To bypass this computational bottleneck, subsequent literature has introduced alternative structural and algorithmic paradigms. Range block search spaces have been constrained through quad-tree partitioning topologies \cite{compression1995fractal} and hierarchical tree-structured block classification methods \cite{478245, hurtgen1993fast} to group blocks by geometric or statistical features. Concurrently, parallel processing arrays and custom hardware engine architectures have been leveraged to distribute matching operations across distinct SIMD hardware elements \cite{hufnagl2000algorithms, vidya2000architecture}.
+To bypass this computational bottleneck, subsequent literature has introduced alternative structural paradigms. Range block search spaces have been constrained through quad-tree partitioning topologies \cite{compression1995fractal} and hierarchical tree-structured block classification methods \cite{478245, hurtgen1993fast} to group blocks by geometric or statistical features. Concurrently, parallel processing arrays and custom hardware engine architectures have been leveraged to distribute matching operations across distinct Single Instruction, Multiple Data (SIMD) hardware elements \cite{hufnagl2000algorithms, vidya2000architecture}. However, to fundamentally reduce the combinatorial complexity of the search space itself, modern approaches increasingly rely on stochastic optimization.
 
-Metaheuristic and stochastic optimization algorithms provide another avenue to replace exhaustive search mechanics. Evolutionary schemes, including schema-based or spatial-correlation Genetic Algorithms (GAs), map block coordinates directly to chromosomes to quickly navigate search matrices by utilizing structural spatial regularities \cite{wu2007schema, wu2006spatial}.
+\subsection{Metaheuristic Optimization Frameworks in FIC}
+To mitigate the exponential computational complexity inherent in exhaustive block-matching, stochastic metaheuristics—particularly swarm-based architectures—are widely integrated into the FIC pipeline \cite{241507, PSOFIC}. By encoding the structural parameters of the fractal mapping into mathematical optimization arrays, the exhaustive scan is re-engineered into an intelligence-driven localization problem.
 
-\subsection{Particle Swarm Optimization (PSO)}
-Particle Swarm Optimization (PSO) is a population-based stochastic optimization methodology modeled after the group intelligence and social flight dynamics observed in biological swarms \cite{PSOOriginal, eberhart1995new}. The underlying algorithm structures a swarm of candidate solutions, termed particles, to evaluate a multi-dimensional objective search space. For a problem domain of dimensionality $D$, each particle $i$ tracks a time-varying position vector $X_i = (x_{i1}, x_{i2}, \dots, x_{iD})$ and a corresponding trajectory velocity vector $V_i = (v_{i1}, v_{i2}, \dots, v_{iD})$.
-
-Throughout execution, individual particles update their state vectors using memory profiles of their personal historical best-performing coordinates, denoted as $\text{P}_{\text{BEST}, i}$. Simultaneously, global communication routes enable the swarm to maintain a reference to the global best position achieved by any population element, defined as $\text{G}_{\text{BEST}}$. At each discrete evolutionary generation step $t$, the velocity and position updates are implemented using the following formulations:
+\subsubsection{Particle Swarm Optimization (PSO) in FIC}
+Standard Particle Swarm Optimization (PSO) is a population-based optimization methodology modeled after biological swarm intelligence \cite{PSOOriginal, eberhart1995new}. The algorithm structures a swarm of candidate solutions, termed particles, utilizing a time-varying position vector $\mathbf{X}_i = (x_{i1}, x_{i2}, \dots, x_{iD})$ and a corresponding trajectory velocity vector $\mathbf{V}_i = (v_{i1}, v_{i2}, \dots, v_{iD})$. Particles navigate by balancing localized personal discovery ($\mathbf{P}_{\text{BEST}, i}$) with global collective information propagation ($\mathbf{G}_{\text{BEST}}$) \cite{PSOOriginal}. At each generation step $t$, updates are formulated as:
 \begin{equation}
-V_i(t+1) = w \cdot V_i(t) + c_1 \cdot r_1 \cdot (\text{P}_{\text{BEST}, i} - X_i(t)) + c_2 \cdot r_2 \cdot (\text{G}_{\text{BEST}} - X_i(t))
+\mathbf{V}_i(t+1) = w \cdot \mathbf{V}_i(t) + c_1 \cdot r_1 \cdot (\mathbf{P}_{\text{BEST}, i} - \mathbf{X}_i(t)) + c_2 \cdot r_2 \cdot (\mathbf{G}_{\text{BEST}} - \mathbf{X}_i(t)),
 \end{equation}
 \begin{equation}
-X_i(t+1) = X_i(t) + V_i(t+1)
+\mathbf{X}_i(t+1) = \mathbf{X}_i(t) + \mathbf{V}_i(t+1).
 \end{equation}
-where $w$ is the inertia weight regulating global exploration versus local exploitation boundaries; $c_1$ and $c_2$ denote the cognitive and social acceleration coefficients; and $r_1, r_2 \sim U(0,1)$ represent uniform stochastic variables that inject randomized perturbations to prevent premature stagnation inside local optima \cite{PSOOriginal}.
 
+When mapped onto the discrete FIC domain, each particle $\mathbf{X}_i$ represents a candidate contractive transformation vector, defining the discrete spatial offset location $(t_x, t_y)$ of a domain block, the orientation index $d$, and the mass parameters $p$ and $q$ \cite{FICOriginal, PSOFIC}. While standard PSO achieves order-of-magnitude acceleration compared to exhaustive search, its reliance on a single global best exemplar ($\mathbf{G}_{\text{BEST}}$) often causes premature convergence within the complex, highly multimodal fitness landscapes of image domain pools, occasionally leading to sub-optimal block matching and degraded reconstruction quality.
 
-\subsection{Metaheuristic Optimization Frameworks in Fractal Image Compression}
-To mitigate the exponential computational complexity inherent in exhaustive combinatorial block-matching search spaces, population-based and swarm-driven stochastic metaheuristics are widely integrated into the Fractal Image Compression (FIC) pipeline \cite{241507, 478245}. By encoding the structural parameters of the fractal mapping into mathematical optimization arrays, the conventional exhaustive scan across the domain pool is re-engineered into an intelligence-driven localization problem over a constrained fitness landscape \cite{FICOriginal}.
+\subsubsection{Pyramid Particle Swarm Optimization (PPSO)}
+To resolve the premature stagnation issues of canonical PSO, Pyramid Particle Swarm Optimization (PPSO) introduces a hierarchical, multi-exemplar architecture \cite{li2022pyramid}. PPSO dynamically organizes candidate solutions into a multi-tiered pyramid based on their instantaneous fitness values (i.e., minimal MSE). Instead of all particles converging toward a single global leader, PPSO establishes cooperative-competitive learning channels. 
 
-\subsubsection{Particle Swarm Optimization (PSO) Integration}
-Integrating swarm intelligence with fractal processes yields a highly efficient alternative to traditional block encoding acceleration frameworks \cite{PSOFIC}. In contrast to standard evolutionary algorithms that rely purely on competitive selection, swarm-based candidate structures navigate solution topologies by balancing localized personal discovery ($\text{P}_{\text{BEST}}$) with global collective information propagation ($\text{G}_{\text{BEST}}$) \cite{PSOOriginal, eberhart1995new}. 
-
-When mapped onto the discrete FIC domain, each particle within the swarm represents a candidate contractive transformation vector \cite{PSOFIC}. Specifically, the multi-dimensional spatial coordinates of a particle define the discrete spatial offset location $(t_x, t_y)$ of a domain block within the virtual codebook pool, while secondary vector elements concurrently manage the discrete orientation mapping index $d \in \{0, 1, \dots, 7\}$ and the continuous massic parameters $p$ and $q$ \cite{FICOriginal, PSOFIC}. This intelligence-driven localized trajectory tracking removes the computational requirement for exhaustive domain pool scanning. By executing directed velocity updates over a constrained fitness landscape evaluated directly against a Mean Squared Error (MSE) objective function, this methodology achieves order-of-magnitude acceleration in encoding velocities while strictly preserving peak signal-to-noise ratios (PSNR) for high-precision imaging applications such as medical imaging \cite{PSOFIC}.
-
-\subsubsection{Genetic Algorithms (GAs)}
-Alongside swarm-based architectures, Genetic Algorithms (GAs) operate as global search heuristics modeled upon the principles of natural selection and genomic inheritance to navigate the discrete codebook matrices \cite{mitra1998technique, wu2007schema, wu2006spatial}. A canonical GA maintains a population of candidate spatial transformation vectors, abstractly encoded as chromosomes, which undergo iterative refinement across successive generations via three fundamental operators:
-\begin{enumerate}
-    \item \textit{Selection:} A probabilistic mechanism that prioritizes individuals exhibiting superior fitness metrics (minimal MSE), ensuring that high-affinity block-matching characteristics are preserved in the mating pool \cite{mitra1998technique, wu2006spatial}.
-    \item \textit{Crossover:} The primary exploratory operator, which executes systematic recombination of genetic segments between paired parental chromosomes to traverse uncharted regions of the domain search space \cite{wu2007schema}.
-    \item \textit{Mutation:} A low-probability stochastic perturbation applied to individual alleles, injecting genotypic diversity to prevent premature convergence and stagnation within sub-optimal local basins.
-\end{enumerate}
-
-While GAs demonstrate exceptional robustness in macro-spatial exploration and the identification of promising global regions of the domain pool, their randomized operational mechanics are fundamentally blind to localized topological gradients. Consequently, standard GAs exhibit poor fine-tuning capabilities and slow asymptotic convergence in the vicinity of localized extrema, occasionally generating localized pixel artifacts during the fractal decoding stage \cite{wu2006spatial}.
+Horizontally, particles within the same tier compete; vertically, subordinate particles learn from superior exemplars across higher tiers \cite{li2022pyramid}. This topological bifurcation effectively preserves population diversity and significantly accelerates macro-spatial convergence. In the context of FIC, this ensures that the domain codebook is explored comprehensively without computational trapping in localized distortion minima.
 
 \subsubsection{Memetic Algorithms (MAs) and Local Search Integration}
-To resolve the exploration-exploitation imbalance inherent in pure evolutionary search, the paradigm of Memetic Algorithms (MAs) is established, introducing a hybrid metaheuristic architecture inspired by cultural transmission and individual learning dynamics. MAs systematically embed deterministic or heuristic Local Search (LS) strategies—such as Hill Climbing, Simulated Annealing, or Tabu Search—directly within the global evolutionary loop of the GA to fine-tune the spatial coordinates of the domain mapping. 
+While PPSO provides exceptional global search capabilities and avoids premature convergence, swarm-based algorithms generally lack the fine-grained exploitative precision required for pixel-perfect image block matching. Memetic Algorithms (MAs) address this exploration-exploitation imbalance by systematically embedding deterministic Local Search (LS) strategies into the global evolutionary loop. 
 
-Mathematically, let $\mathcal{X}$ denote the discrete optimization domain of codebook coordinates, and let $f: \mathcal{X} \rightarrow \mathbb{R}$ represent the MSE objective function to be minimized \cite{FICOriginal}. While the evolutionary operators execute coarse-grained global routing across the domain pool, the memetic component applies a localized optimization mapping $\Lambda: \mathcal{X} \rightarrow \mathcal{X}$ to an individual $x \in \mathcal{X}$ within its immediate neighborhood structure $\mathcal{N}(x)$, enforcing strict monotonic convergence:
+Mathematically, let $\mathcal{X}$ denote the discrete optimization domain of codebook coordinates, and $f: \mathcal{X} \rightarrow \mathbb{R}$ represent the MSE objective function \cite{FICOriginal}. While the PPSO operators execute coarse-grained global routing, a memetic component applies a localized optimization mapping $\Lambda: \mathcal{X} \rightarrow \mathcal{X}$ to an individual $x \in \mathcal{X}$ within its immediate neighborhood structure, enforcing strict monotonic convergence:
 \begin{equation}
-f(\Lambda(x)) \le f(x)
+f(\Lambda(x)) \le f(x).
 \end{equation}
-By offloading the fine-grained tracking of the exact coordinate offsets to the exploitative local search operator, the algorithm avoids premature convergence while maximizing reconstruction fidelity.
+By coupling the robust global exploration of PPSO with the strict, fine-grained exploitative tracking of an MA, the algorithm ensures exact coordinate offset matching.
 
-\subsection{Synthesis of Metaheuristic Accelerators in FIC}
-The architectural mapping of population-based and swarm-driven metaheuristics onto the FIC framework fundamentally redefines the classical codebook search. By treating the domain block properties as low-dimensional state variables within an optimization vector, the search space is converted from an exhaustive spatial scan into an intelligence-driven localization problem \cite{FICOriginal, PSOFIC, mitra1998technique, wu2006spatial}. 
-
-Whether utilizing the socio-stochastic velocity trajectories of PSO—which stands as one of the most prominent paradigms due to its balance of global communication and memory retention \cite{PSOOriginal, PSOFIC}—the global exploratory mechanisms of GAs \cite{mitra1998technique, wu2006spatial}, or the high-fidelity exploitative refinement of hybrid MAs, these metaheuristics focus computational bandwidth exclusively on high-affinity regions of the domain pool. This integration bypasses the exhaustive evaluation loops that constrain conventional FIC frameworks \cite{FICOriginal, 241507}. Consequently, the combination of evolutionary frameworks with local search strategies yields order-of-magnitude acceleration while strictly preserving the mathematical convergence guarantees and reconstruction fidelity dictated by the contractive mapping fixed-point theorem \cite{Barnsley1985, barnsley2014fractals}.
 \section{Conclusion}
 \section*{Acknowledgment}
 
