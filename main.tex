@@ -56,11 +56,17 @@ In the standardized block-oriented framework, encoding a gray-level image of siz
 
 To evaluate similarity metrics, each candidate domain block $u$ is down-sampled to match the $L \times L$ resolution of the target range block. Spatial orientation constraints are handled by subjecting the down-sampled domain block to eight canonical Dihedral transformations (isometries) $T_k$ ($k = 0, 1, \dots, 7$), producing an array of transformed domain blocks $u_k$, where $u_0 = u$ \cite{FICOriginal}. These geometric operations include horizontal reflection ($T_1$), vertical reflection ($T_2$), combined horizontal-vertical reflection ($T_3$), and diagonal reflections ($T_4$ through $T_7$).
 
-The discrete block-wise contractive affine transformation maps spatial coordinates and intensity metrics simultaneously:
+The discrete block-wise contractive affine transformation $\Phi$ consists of a spatial (geometric) mapping and a massic (intensity) mapping. The spatial transformation maps the coordinates of the domain block to the range block:
 \begin{equation}
-\Phi \begin{bmatrix} x \\ y \end{bmatrix} = p \begin{bmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{bmatrix} \begin{bmatrix} x \\ y \end{bmatrix} + \begin{bmatrix} t_x \\ t_y \end{bmatrix} + q,
+W_k \begin{bmatrix} x \\ y \end{bmatrix} = \begin{bmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{bmatrix} \begin{bmatrix} x \\ y \end{bmatrix} + \begin{bmatrix} t_x \\ t_y \end{bmatrix},
 \end{equation}
-where the $2 \times 2$ sub-matrix represents the Dihedral transformation operator $T_k$, $(t_x, t_y)$ establishes the spatial coordinates of the matching domain block, $p$ defines the contrast scaling factor ($\alpha$), and $q$ denotes the brightness offset ($\Delta g$) \cite{FICOriginal}.
+where the $2 \times 2$ sub-matrix represents the Dihedral transformation operator $T_k$, and $(t_x, t_y)$ establishes the spatial offset of the matching domain block. 
+
+Concurrently, the massic transformation adjusts the pixel intensities $z = u(x,y)$ of the mapped domain block:
+\begin{equation}
+\Phi(z) = p \cdot z + q,
+\end{equation}
+where $p$ defines the contrast scaling factor ($\alpha$), and $q$ denotes the brightness offset ($\Delta g$) \cite{FICOriginal}.
 
 Parameter optimization is modeled as an inverse problem minimized using a Mean Squared Error (MSE) or Peak Signal-to-Noise Ratio (PSNR) distortion metric \cite{FICOriginal}. For each pairing, the specific isometry index $d$ is determined via:
 \begin{equation}
@@ -72,7 +78,17 @@ where the discrete MSE over an $L \times L$ pixel grid is computed as:
 \end{equation}
 Applying least-squares regression to minimize this distortion objective yields closed-form solutions for the mass parameters $p$ and $q$:
 \begin{equation}
-p = \frac{L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) u_k(i,j) - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) \right) \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)}{L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j)^2 - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)^2},
+p = \frac{N_p}{D_p},
+\end{equation}
+where the numerator $N_p$ and denominator $D_p$ are defined as:
+\begin{equation}
+\begin{split}
+N_p &= L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) u_k(i,j) \\
+&\quad - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) \right) \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right),
+\end{split}
+\end{equation}
+\begin{equation}
+D_p = L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j)^2 - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)^2.
 \end{equation}
 \begin{equation}
 q = \frac{1}{L^2} \left[ \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) - p \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right].
@@ -91,7 +107,10 @@ To mitigate the exponential computational complexity inherent in exhaustive bloc
 \subsubsection{Particle Swarm Optimization (PSO) in FIC}
 Standard Particle Swarm Optimization (PSO) is a population-based optimization methodology modeled after biological swarm intelligence \cite{PSOOriginal, eberhart1995new}. The algorithm structures a swarm of candidate solutions, termed particles, utilizing a time-varying position vector $\mathbf{X}_i = (x_{i1}, x_{i2}, \dots, x_{iD})$ and a corresponding trajectory velocity vector $\mathbf{V}_i = (v_{i1}, v_{i2}, \dots, v_{iD})$. Particles navigate by balancing localized personal discovery ($\mathbf{P}_{\text{BEST}, i}$) with global collective information propagation ($\mathbf{G}_{\text{BEST}}$) \cite{PSOOriginal}. At each generation step $t$, updates are formulated as:
 \begin{equation}
-\mathbf{V}_i(t+1) = w \cdot \mathbf{V}_i(t) + c_1 \cdot r_1 \cdot (\mathbf{P}_{\text{BEST}, i} - \mathbf{X}_i(t)) + c_2 \cdot r_2 \cdot (\mathbf{G}_{\text{BEST}} - \mathbf{X}_i(t)),
+\begin{split}
+\mathbf{V}_i(t+1) &= w \cdot \mathbf{V}_i(t) + c_1 \cdot r_1 \cdot (\mathbf{P}_{\text{BEST}, i} - \mathbf{X}_i(t)) \\
+&\quad + c_2 \cdot r_2 \cdot (\mathbf{G}_{\text{BEST}} - \mathbf{X}_i(t)),
+\end{split}
 \end{equation}
 \begin{equation}
 \mathbf{X}_i(t+1) = \mathbf{X}_i(t) + \mathbf{V}_i(t+1).
