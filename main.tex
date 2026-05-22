@@ -47,8 +47,62 @@
 \end{IEEEkeywords}
 
 \section{Introduction}
-Fractal Image Compression (FIC)~\cite{FICOriginal}
 \section{Related Work}
+
+\subsection{Foundations of Fractal Image Compression}
+The theoretical framework of Fractal Image Compression (FIC) originates from the application of the fractal transform via Iterated Function Systems (IFS) \cite{Barnsley1985}. This mathematical foundation utilizes the Collage Theorem and the Contractive Mapping Fixed-Point Theorem to systematically exploit block self-affine redundancies inherent within digital images \cite{barnsley2014fractals, Barnsley1985}. Early implementations demonstrated the feasibility of compressing images through these multi-scale fractal mapping principles \cite{barnsley1988better}, which ultimately led to the development of automated, block-based practical compression schemes \cite{FICOriginal}.
+
+In the standardized block-oriented framework, encoding a gray-level image of size $N \times N$ requires partitioning the spatial domain into a range pool $R$ comprised of $(N/L)^2$ non-overlapping range blocks $v$ of dimensions $L \times L$ \cite{FICOriginal}. Concurrently, a domain pool $D$ is established by extracting $(N - 2L + 1)^2$ overlapping domain blocks of size $2L \times 2L$ \cite{FICOriginal}. For each distinct range block $v \in R$, a search is executed across the virtual codebook of the domain pool to map a contractive affine transformation $\Phi$ from the domain to the range block space \cite{FICOriginal}.
+
+To evaluate similarity metrics, each candidate domain block $u$ is down-sampled to match the $L \times L$ resolution of the target range block. Spatial orientation constraints are handled by subjecting the down-sampled domain block to eight canonical Dihedral transformations (isometries) $T_k$ ($k = 0, 1, \dots, 7$), producing an array of transformed domain blocks $u_k$, where $u_0 = u$ \cite{FICOriginal}. These geometric operations include horizontal reflection ($T_1$), vertical reflection ($T_2$), combined horizontal-vertical reflection ($T_3$), and diagonal reflections ($T_4$ through $T_7$).
+
+The discrete block-wise contractive affine transformation maps spatial coordinates and intensity metrics simultaneously:
+\begin{equation}
+\Phi \begin{bmatrix} x \\ y \end{bmatrix} = p \begin{bmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{bmatrix} \begin{bmatrix} x \\ y \end{bmatrix} + \begin{bmatrix} t_x \\ t_y \end{bmatrix} + q
+\end{equation}
+where the $2 \times 2$ sub-matrix represents the Dihedral transformation operator $T_k$, $(t_x, t_y)$ establishes the spatial coordinates of the matching domain block, $p$ defines the contrast scaling factor ($\alpha$), and $q$ denotes the brightness offset ($\Delta g$) \cite{FICOriginal}.
+
+Parameter optimization is modeled as an inverse problem minimized using a Mean Squared Error (MSE) or Peak Signal-to-Noise Ratio (PSNR) distortion metric \cite{FICOriginal}. For each pairing, the specific isometry index $d$ is determined via:
+\begin{equation}
+d = \arg\min_{k \in \{0,1,\dots,7\}} \left\{ \text{MSE}(v, p_k u_k + q_k) \right\}
+\end{equation}
+where the discrete MSE over an $L \times L$ pixel grid is computed as:
+\begin{equation}
+\text{MSE}(v, u) = \frac{1}{L^2} \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} \left( v(i,j) - u(i,j) \right)^2
+\end{equation}
+Applying least-squares regression to minimize this distortion objective yields closed-form solutions for the massic parameters $p$ and $q$:
+\begin{equation}
+p = \frac{L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) u_k(i,j) - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) \right) \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)}{L^2 \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j)^2 - \left( \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right)^2}
+\end{equation}
+\begin{equation}
+q = \frac{1}{L^2} \left[ \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} v(i,j) - p \sum_{i=0}^{L-1} \sum_{j=0}^{L-1} u_k(i,j) \right]
+\end{equation}
+
+The resulting code vectors—comprising spatial coordinates $(t_x, t_y)$, orientation index $d$, scale factor $p$, and offset $q$—are uniformly quantized and bit-allocated for transmission. Image reconstruction at the decoder operates recursively by applying these mapped transformations onto an arbitrary initial image profile. Based on the Partitioned Iteration Function System (PIFS) model and Banach's fixed-point theorem, the processing sequence yields a convergent Cauchy sequence that terminates at a unique invariant attractor image.
+
+\subsection{Acceleration Techniques in FIC}
+Although capable of guaranteeing high compression ratios and reconstruction fidelity, conventional FIC is constrained by an exhaustive search strategy \cite{241507}. Because each independent range block must iterate through every permutation of domain blocks across all eight orientations, the computational overhead is exceedingly high, limiting real-time practical utility \cite{241507}.
+
+To bypass this computational bottleneck, subsequent literature has introduced alternative structural and algorithmic paradigms. Range block search spaces have been constrained through quad-tree partitioning topologies \cite{compression1995fractal} and hierarchical tree-structured block classification methods \cite{478245, hurtgen1993fast} to group blocks by geometric or statistical features. Concurrently, parallel processing arrays and custom hardware engine architectures have been leveraged to distribute matching operations across distinct SIMD hardware elements \cite{hufnagl2000algorithms, vidya2000architecture}.
+
+Metaheuristic and stochastic optimization algorithms provide another avenue to replace exhaustive search mechanics. Evolutionary schemes, including schema-based or spatial-correlation Genetic Algorithms (GAs), map block coordinates directly to chromosomes to quickly navigate search matrices by utilizing structural spatial regularities \cite{wu2007schema, wu2006spatial}.
+
+\subsection{Particle Swarm Optimization (PSO)}
+Particle Swarm Optimization (PSO) is a population-based stochastic optimization methodology modeled after the group intelligence and social flight dynamics observed in biological swarms \cite{PSOOriginal, eberhart1995new}. The underlying algorithm structures a swarm of candidate solutions, termed particles, to evaluate a multi-dimensional objective search space. For a problem domain of dimensionality $D$, each particle $i$ tracks a time-varying position vector $X_i = (x_{i1}, x_{i2}, \dots, x_{iD})$ and a corresponding trajectory velocity vector $V_i = (v_{i1}, v_{i2}, \dots, v_{iD})$.
+
+Throughout execution, individual particles update their state vectors using memory profiles of their personal historical best-performing coordinates, denoted as $\text{P}_{\text{BEST}, i}$. Simultaneously, global communication routes enable the swarm to maintain a reference to the global best position achieved by any population element, defined as $\text{G}_{\text{BEST}}$. At each discrete evolutionary generation step $t$, the velocity and position updates are implemented using the following formulations:
+\begin{equation}
+V_i(t+1) = w \cdot V_i(t) + c_1 \cdot r_1 \cdot (\text{P}_{\text{BEST}, i} - X_i(t)) + c_2 \cdot r_2 \cdot (\text{G}_{\text{BEST}} - X_i(t))
+\end{equation}
+\begin{equation}
+X_i(t+1) = X_i(t) + V_i(t+1)
+\end{equation}
+where $w$ is the inertia weight regulating global exploration versus local exploitation boundaries; $c_1$ and $c_2$ denote the cognitive and social acceleration coefficients; and $r_1, r_2 \sim U(0,1)$ represent uniform stochastic variables that inject randomized perturbations to prevent premature stagnation inside local optima \cite{PSOOriginal}.
+
+\subsection{Integration of PSO with Fractal Image Compression}
+Integrating swarm optimization with fractal processes yields an alternative to GA systems for block encoding acceleration \cite{PSOFIC}. In contrast to GAs, which lack generational memory retention, PSO candidate structures navigate solution topologies using a continuous balance of personal discovery ($\text{P}_{\text{BEST}}$) and global collective intelligence ($\text{G}_{\text{BEST}}$) \cite{PSOOriginal}.
+
+When mapped onto the discrete FIC domain, the coordinates of each particle define a specific spatial offset location $(t_x, t_y)$ of a domain block within the virtual codebook, with additional vector indices managing the discrete orientation mapping index and scaling parameters \cite{PSOFIC}. This intelligence-driven swarm localization removes the need for exhaustive domain pool indexing \cite{PSOFIC}. By configuring an adaptive convergence threshold evaluated against an MSE objective function, this integration achieves substantial encoding speedups while keeping the visual reconstruction thresholds stable for high-precision applications like medical imaging \cite{PSOFIC}.
 \section{Conclusion}
 \section*{Acknowledgment}
 
