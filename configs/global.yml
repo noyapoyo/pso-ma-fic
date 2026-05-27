@@ -31,16 +31,16 @@ ffe_budget_per_block: 500
 
 # === FIC Partitioning Parameters (must be consistent across methods) ===
 image_size: 256       # Resize input images to this (square) size
-range_size: 8         # Range block size (8x8)
-domain_size: 16       # Domain block size (16x16, downsampled to 8x8)
-domain_stride: 8      # Domain block stride
+range_size: 4         # Range block size (8x8)
+domain_size: 8        # Domain block size (16x16, downsampled to 8x8)
+domain_stride: 4      # Domain block stride
 
 # === Decoding ===
 decode_iterations: 20
 
 # === Reproducibility ===
 seed: 42
-n_runs: 1             # Number of independent runs per (method, image)
+n_runs: 5             # Number of independent runs per (method, image)
                       # For final paper experiments, set to >= 5 and report mean +/- std
 
 # === Output ===

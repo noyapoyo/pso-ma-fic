@@ -65,6 +65,7 @@ def encode_feature_kdtree(image,
                           range_size=8, domain_size=16, domain_stride=8,
                           top_k=40,
                           feature_normalize=True,
+                          feature_weights=None,
                           ffe_budget_per_block=None,
                           seed=42,
                           **_ignored):
@@ -115,6 +116,16 @@ def encode_feature_kdtree(image,
     else:
         domain_feats_n = domain_feats
         range_feats_n = range_feats
+
+    # Apply feature weights (scales each dimension before distance computation)
+    if feature_weights is not None:
+        w = np.array(feature_weights, dtype=np.float64)
+        assert w.shape == (domain_feats_n.shape[1],), \
+            f"feature_weights must have {domain_feats_n.shape[1]} elements, got {w.shape}"
+        domain_feats_n = domain_feats_n * w
+        range_feats_n = range_feats_n * w
+        print(f"  Feature weights: {np.round(w, 3)}")
+
     t_feat = time.time() - t_feat0
     print(f"done ({t_feat:.2f}s)")
 
@@ -217,6 +228,7 @@ def encode_feature_kdtree(image,
         'psnr_db': round(psnr, 2),
         'convergence_curve': convergence_curve,
         'fgds_top_k': top_k,
+        'feature_weights': list(feature_weights) if feature_weights is not None else None,
     }
 
     print(f"\n  FGDS-KDTree complete | "

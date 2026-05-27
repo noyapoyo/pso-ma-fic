@@ -41,7 +41,17 @@ METHOD_STYLES = {
     'memetic_pso':        {'label': 'Memetic PSO',  'color': '#2ca02c', 'ls': '-.',  'marker': '^'},
     'memetic_ppso':       {'label': 'Memetic PPSO', 'color': '#d62728', 'ls': '-.',  'marker': 'D'},
     'feature_guided_pso': {'label': 'FG-PSO',       'color': '#9467bd', 'ls': '-',   'marker': '*'},
-    'feature_kdtree':     {'label': 'Feature Exhausted PSO', 'color': '#8c564b', 'ls': '-',   'marker': 'P'},
+    'feature_kdtree':     {'label': 'FGDS (K=40)',  'color': '#8c564b', 'ls': '-',   'marker': 'P'},
+    # K-sensitivity
+    'fgds_k5':            {'label': 'FGDS K=5',     'color': '#bcbd22', 'ls': ':',   'marker': '.'},
+    'fgds_k10':           {'label': 'FGDS K=10',    'color': '#17becf', 'ls': ':',   'marker': 'v'},
+    'fgds_k20':           {'label': 'FGDS K=20',    'color': '#e377c2', 'ls': '--',  'marker': '<'},
+    'fgds_k40':           {'label': 'FGDS K=40',    'color': '#8c564b', 'ls': '-',   'marker': 'P'},
+    'fgds_k80':           {'label': 'FGDS K=80',    'color': '#7f7f7f', 'ls': '-',   'marker': '>'},
+    'fgds_k160':          {'label': 'FGDS K=160',   'color': '#aec7e8', 'ls': '-',   'marker': 'h'},
+    # Feature weight GA
+    'fgds_equal_weights': {'label': 'FGDS (equal w)', 'color': '#8c564b', 'ls': '--', 'marker': 'P'},
+    'fgds_ga_weights':    {'label': 'FGDS (GA w)',    'color': '#e41a1c', 'ls': '-',  'marker': '*'},
 }
 
 
