@@ -48,6 +48,8 @@ from encoders.ppso import encode_ppso
 from encoders.memetic_pso import encode_memetic_pso
 from encoders.memetic_ppso import encode_memetic_ppso
 from encoders.feature_guided_pso import encode_feature_guided_pso
+from encoders.feature_exhaustive import encode_feature_exhaustive
+from encoders.feature_kdtree import encode_feature_kdtree
 
 
 # 註冊所有 encoder (name -> function)
@@ -59,6 +61,8 @@ METHODS = {
     'memetic_pso':        encode_memetic_pso,
     'memetic_ppso':       encode_memetic_ppso,
     'feature_guided_pso': encode_feature_guided_pso,
+    'feature_exhaustive': encode_feature_exhaustive,    # ablation
+    'feature_kdtree':     encode_feature_kdtree,        # proposed method
 }
 
 CONFIGS_DIR = 'configs'

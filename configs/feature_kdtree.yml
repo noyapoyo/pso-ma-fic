@@ -1,0 +1,14 @@
+# =============================================================================
+# Feature-Guided Domain Selection with KD-Tree (FGDS-KDTree) - configuration
+# =============================================================================
+# 最終提出的方法: 用 isometry-invariant feature + KD-Tree 做 candidate pool,
+# 然後在 top-K × 8 子空間內 exhaustive search。
+#
+# 不使用 PSO 或任何 metaheuristic inner optimizer。
+# Heuristic 的本質: feature design + top-K selection 本身就是 heuristic。
+# =============================================================================
+
+# === Feature-guided candidate pool ===
+top_k: 40                 # Candidate pool size per range block
+                          # K=40 → 40×8 = 320 FFE per block (exhaustive)
+feature_normalize: true   # z-score normalize features before distance computation

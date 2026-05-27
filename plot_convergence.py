@@ -41,6 +41,7 @@ METHOD_STYLES = {
     'memetic_pso':        {'label': 'Memetic PSO',  'color': '#2ca02c', 'ls': '-.',  'marker': '^'},
     'memetic_ppso':       {'label': 'Memetic PPSO', 'color': '#d62728', 'ls': '-.',  'marker': 'D'},
     'feature_guided_pso': {'label': 'FG-PSO',       'color': '#9467bd', 'ls': '-',   'marker': '*'},
+    'feature_kdtree':     {'label': 'Feature Exhausted PSO', 'color': '#8c564b', 'ls': '-',   'marker': 'P'},
 }
 
 
