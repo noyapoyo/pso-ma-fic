@@ -52,6 +52,10 @@ METHOD_STYLES = {
     # Feature weight GA
     'fgds_equal_weights': {'label': 'FGDS (equal w)', 'color': '#8c564b', 'ls': '--', 'marker': 'P'},
     'fgds_ga_weights':    {'label': 'FGDS (GA w)',    'color': '#e41a1c', 'ls': '-',  'marker': '*'},
+    # Three-way comparison (run_comparison.py)
+    'fgds_pairwise': {'label': 'FGDS Pairwise (no KDTree)', 'color': '#ff7f0e', 'ls': '--', 'marker': 's'},
+    'fgds_kdtree':   {'label': 'FGDS + KDTree (equal w)',   'color': '#1f77b4', 'ls': '-',  'marker': 'P'},
+    'fgds_ga':       {'label': 'FGDS + KDTree + GA weights','color': '#d62728', 'ls': '-',  'marker': '*'},
 }
 
 

@@ -79,14 +79,18 @@ def encode_feature_exhaustive(image,
     else:
         domain_feats_n = domain_feats
         range_feats_n = range_feats
-    print(f"done ({time.time() - t_feat0:.2f}s)")
+    t_feat = time.time() - t_feat0
+    print(f"done ({t_feat:.2f}s)")
 
-    # Stage 2: Candidate pool
-    print(f"  Building candidate pools (top-{top_k})...", end=" ", flush=True)
+    # Stage 2: Candidate pool (brute-force pairwise)
+    print(f"  Building candidate pools (top-{top_k}, pairwise)...", end=" ", flush=True)
     t_pool0 = time.time()
     candidate_pools = build_candidate_pools(range_feats_n, domain_feats_n, top_k)
+    t_pool = time.time() - t_pool0
     feature_setup_time = time.time() - t_feat0
-    print(f"done ({time.time() - t_pool0:.2f}s)")
+    print(f"done ({t_pool:.2f}s)")
+    print(f"  Total preprocessing: {feature_setup_time:.2f}s "
+          f"(features: {t_feat:.2f}s + pairwise: {t_pool:.2f}s)")
 
     # Stage 3: Exhaustive search within candidate pool
     print(f"  Running exhaustive search for {n_range} range blocks...")
@@ -169,6 +173,8 @@ def encode_feature_exhaustive(image,
         'ls_triggers': 0, 'ls_improvements': 0,
         'encoding_time_sec': round(encoding_time, 3),
         'feature_setup_time_sec': round(feature_setup_time, 3),
+        'feature_extract_time_sec': round(t_feat, 3),
+        'pairwise_pool_time_sec': round(t_pool, 3),
         'mse_mean': round(mean_mse, 4),
         'mse_max': round(float(np.max(all_mse)), 4),
         'psnr_db': round(psnr, 2),
