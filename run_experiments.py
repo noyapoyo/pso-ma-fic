@@ -1,34 +1,40 @@
 """
 =============================================================================
-run_experiment.py - 統一的 FIC 實驗執行器 (YAML config + FFE budget)
+run_experiments.py - Experiment 1: PSO vs Memetic-PSO vs FG-PSO vs FGDS
 =============================================================================
 
-讀取 configs/ 下的 YAML 設定檔執行實驗。支援 FFE budget 公平比較。
+四種方法的公平比較（FFE budget = 800），每個 (method, image) 跑 5 runs。
 
-用法：
-    # 跑所有方法（讀 configs/*.yml）
-    python run_experiment.py
+■ 方法:
+  - pso             : Standard PSO (Muruganandham 2010 baseline)
+  - memetic_pso     : PSO + Local Search (isometry + spatial)
+  - feature_guided_pso : FG-PSO, K=40 feature-guided candidate pool + PSO + LS
+  - feature_exhaustive : FGDS (pairwise), K=40 feature pool + exhaustive (no PSO)
 
-    # 只跑特定方法
-    python run_experiment.py --methods pso ppso memetic_ppso
+■ 重點結論（從 narrative 來）:
+  - PSO → Memetic PSO: LS 有幫助但更慢
+  - Memetic PSO → FG-PSO: feature 縮搜索空間讓 PSO 更有效
+  - FG-PSO → FGDS: 在 K=40 的候選池中，直接 exhaustive 比 PSO 更好
 
-    # 只跑單張影像
-    python run_experiment.py --image cameraman
+■ 用法:
+    python run_experiments.py \\
+        --image-size 1024 --range-size 4 --domain-size 8 --domain-stride 4 \\
+        --ffe-budget 800 --n-runs 5 --output-dir results_exp1
 
-    # 跑多次 run（每個方法跑 N 次取平均、std）
-    python run_experiment.py --n-runs 5
+    # 快速測試單張圖
+    python run_experiments.py --image 0007 --n-runs 1 \\
+        --image-size 1024 --range-size 4 --domain-size 8 --domain-stride 4 \\
+        --ffe-budget 800 --output-dir results_exp1_test
 
-    # 用自訂全域設定
-    python run_experiment.py --global-config configs/global_strict.yml
+■ 畫圖:
+    python plot_convergence.py results_exp1/
 
 設定檔結構：
-    configs/global.yml       全域設定 (FFE budget, 影像參數, seed, n_runs)
-    configs/<method>.yml     方法特定參數 (pop_size, max_iter, ...)
-
-擴充新方法：
-    1. 在 encoders/ 新增 your_method.py
-    2. 在 METHODS 字典加一行
-    3. 建立 configs/your_method.yml
+    configs/global.yml           全域設定 (seed 等)
+    configs/pso.yml              PSO 參數
+    configs/memetic_pso.yml      Memetic PSO 參數
+    configs/feature_guided_pso.yml  FG-PSO 參數 (top_k=40)
+    configs/feature_exhaustive.yml  FGDS 參數 (top_k=40)
 =============================================================================
 """
 
@@ -42,27 +48,18 @@ from collections import defaultdict
 from datetime import datetime
 
 import fic_core as core
-from encoders.full_search import encode_full_search
 from encoders.pso import encode_pso
-from encoders.ppso import encode_ppso
 from encoders.memetic_pso import encode_memetic_pso
-from encoders.memetic_ppso import encode_memetic_ppso
 from encoders.feature_guided_pso import encode_feature_guided_pso
 from encoders.feature_exhaustive import encode_feature_exhaustive
-from encoders.feature_kdtree import encode_feature_kdtree
 
 
-# 註冊所有 encoder (name -> function)
-# 新方法只要在這裡加一行 + 建立對應的 configs/<name>.yml
-# 'full_search':  encode_full_search,
+# Experiment 1 methods (K=40 for feature-based methods, set in configs/)
 METHODS = {
     'pso':                encode_pso,
-    'ppso':               encode_ppso,
     'memetic_pso':        encode_memetic_pso,
-    'memetic_ppso':       encode_memetic_ppso,
     'feature_guided_pso': encode_feature_guided_pso,
-    'feature_exhaustive': encode_feature_exhaustive,    # ablation
-    'feature_kdtree':     encode_feature_kdtree,        # proposed method
+    'feature_exhaustive': encode_feature_exhaustive,
 }
 
 CONFIGS_DIR = 'configs'
@@ -286,8 +283,8 @@ def main():
     parser.add_argument('--decode-iter', type=int, default=None,
                         help='Decode iteration 次數 (覆寫 global.yml)')
     # Output & runs
-    parser.add_argument('--output-dir', type=str, default=None,
-                        help='覆寫 global.yml 的 output_dir')
+    parser.add_argument('--output-dir', type=str, default='results_exp1',
+                        help='Output directory (default: results_exp1)')
     parser.add_argument('--global-config', type=str, default=None,
                         help='全域設定檔路徑 (預設 configs/global.yml)')
     parser.add_argument('--configs-dir', type=str, default=CONFIGS_DIR)
@@ -312,7 +309,7 @@ def main():
     if args.ffe_budget    is not None: global_cfg['ffe_budget_per_block'] = args.ffe_budget
     if args.no_early_stop:             global_cfg['no_early_stop']      = True
 
-    output_dir = args.output_dir or global_cfg.get('output_dir', 'results')
+    output_dir = args.output_dir
     n_runs = args.n_runs if args.n_runs is not None else global_cfg.get('n_runs', 1)
     image_size = global_cfg.get('image_size', 256)
 

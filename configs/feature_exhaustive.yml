@@ -1,0 +1,12 @@
+# =============================================================================
+# Feature-Only Exhaustive Search (FGDS Pairwise Ablation) - configuration
+# =============================================================================
+# Used in Experiment 1 as the FGDS baseline:
+#   feature extraction (pairwise brute-force) + exhaustive search (no PSO, no LS)
+#
+# K=40 matches FG-PSO's candidate pool size for fair comparison in Exp 1.
+# The pairwise brute-force pool construction is the bottleneck (vs KDTree in Exp 2+).
+# =============================================================================
+
+top_k: 40
+feature_normalize: true

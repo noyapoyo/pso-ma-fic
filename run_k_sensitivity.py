@@ -1,31 +1,34 @@
 """
 =============================================================================
-run_k_sensitivity.py - FGDS Candidate Pool Size (K) Sensitivity Study
+run_k_sensitivity.py - Experiment 3: FGDS Candidate Pool Size (K) Sensitivity
 =============================================================================
 
-對 FGDS 方法測試不同的 candidate pool size K，
-觀察 K 如何影響 PSNR、encoding time 和 preprocessing time。
+對 FGDS+KDTree 方法測試不同的 candidate pool size K，
+觀察 K 如何影響 PSNR 和 encoding time。
 
-K 值: 5, 10, 20, 40, 80, 160
-每個 K 值在所有 5 張 1024×1024 圖上各跑一次 (deterministic, 不需多 run)。
+■ K 值: 5, 10, 20, 40, 80, 160
+■ 每個 K 值在全部 10 張圖各跑一次 (deterministic, feature pool 不含隨機)
+■ 使用 FGDS+KDTree（快速前處理），FFE budget=800 統一 x 軸比較
+
+結論: K=80 在品質和速度之間取得最好平衡。
 
 用法:
-    # 跑全部 5 張圖 × 6 個 K 值 (預估 ~3 小時)
-    python run_k_sensitivity.py
+    # 完整執行（10 張圖 × 6 個 K 值）
+    python run_k_sensitivity.py \\
+        --image-size 1024 --range-size 4 --domain-size 8 --domain-stride 4 \\
+        --ffe-budget 800 --k-values 5 10 20 40 80 160 --output-dir results_exp3
 
-    # 先在單張圖上快速測試 (~30 分鐘)
-    python run_k_sensitivity.py --image 0043
+    # 快速測試單張圖
+    python run_k_sensitivity.py --image 0007 \\
+        --image-size 1024 --range-size 4 --domain-size 8 --domain-stride 4 \\
+        --ffe-budget 800 --output-dir results_exp3_test
 
-    # 自訂 K 值清單
-    python run_k_sensitivity.py --k-values 5 10 20 40 80
+畫圖:
+    python plot_convergence.py results_exp3/
 
-    # 自訂影像參數
-    python run_k_sensitivity.py --image-size 1024 --range-size 4 --domain-size 8
-
-結果會儲存在 results_k_sensitivity/ 目錄下:
-    - k_sensitivity_YYYYMMDD_HHMMSS.csv (所有結果)
-    - 各張 reconstructed image (K=40 的)
-    - 最後會印出一張 summary table
+結果: results_exp3/
+    - k_sensitivity_TIMESTAMP.csv
+    - convergence_IMAGE_run0.json  (all K values for each image)
 =============================================================================
 """
 
@@ -76,10 +79,10 @@ def main():
     parser.add_argument('--range-size', type=int, default=4)
     parser.add_argument('--domain-size', type=int, default=8)
     parser.add_argument('--domain-stride', type=int, default=4)
-    parser.add_argument('--output-dir', type=str, default='results_k_sensitivity')
-    parser.add_argument('--ffe-budget', type=int, default=500,
-                        help='FFE budget per block (for convergence curve x-axis, '
-                             'must match other methods for fair comparison)')
+    parser.add_argument('--output-dir', type=str, default='results_exp3')
+    parser.add_argument('--ffe-budget', type=int, default=800,
+                        help='FFE budget per block (must match Exp1 for fair comparison; '
+                             'K=80 uses 640 FFE, budget=800 leaves headroom)')
     args = parser.parse_args()
 
     images = collect_images(args.image_dir, args.image)
@@ -124,7 +127,7 @@ def main():
                 domain_stride=args.domain_stride,
                 decode_iterations=20,
                 save_fic=False,
-                save_outputs=(k == 40),  # 只存 K=40 的 reconstructed image
+                save_outputs=(k == 80),  # 只存 K=80 的 reconstructed image
                 # encoder kwargs:
                 top_k=k,
                 feature_normalize=True,

@@ -1,49 +1,40 @@
 #!/usr/bin/env python3
 """
 =============================================================================
-run_comparison.py - Three-Way FGDS Comparison Experiment
+run_comparison.py - Experiment 2: Three-Way FGDS Comparison
 =============================================================================
 
-比較三種 Feature-Guided Domain Selection 的變體（全部使用 k=80）:
+比較三種 Feature-Guided Domain Selection 的變體（全部使用 k=80，1 run）:
   1. fgds_pairwise  : Brute-force pairwise candidate search (無 KDTree)
+                      → 展示 KDTree 加速效果
   2. fgds_kdtree    : KDTree 加速 candidate search，等權重 feature
-  3. fgds_ga        : KDTree 加速 candidate search，GA 優化 feature weights
+  3. fgds_ga        : KDTree 加速 + GA 優化 feature weights
 
-時間記錄（逐項分開）:
-  - feature_extract_time_sec    : feature 提取耗時
-  - candidate_selection_time_sec: candidate pool 建構耗時 (pairwise 或 KDTree)
+重點指標（逐項時間分開記錄）:
+  - feature_extract_time_sec    : feature 提取耗時 (~7s)
+  - candidate_selection_time_sec: 候選池建構耗時 (pairwise ~175s vs KDTree <0.5s)
   - preprocessing_time_sec      : feature_extract + candidate_selection
   - encoding_time_sec           : 搜尋迴圈耗時
   - total_time_sec              : preprocessing + encoding
-  - ga_training_time_sec        : (僅 fgds_ga) GA 訓練耗時
+  - ga_training_time_sec        : (僅 fgds_ga) GA 訓練耗時（只算一次）
+
+GA 訓練圖片來自 training_image/ 目錄（不在 10 張測試圖內）。
+預設使用 training_image/0003.png。
 
 用法:
-    # 完整執行（含 GA 訓練）
+    # 完整執行（含 GA 訓練，使用 training_image/0003.png）
     python run_comparison.py \\
         --image-size 1024 --range-size 4 --domain-size 8 --domain-stride 4 \\
-        --ffe-budget 500 --top-k 80
-
-    # 指定訓練圖片
-    python run_comparison.py \\
-        --image-size 1024 --range-size 4 --domain-size 8 --domain-stride 4 \\
-        --ffe-budget 500 --top-k 80 --train-image 0043
+        --ffe-budget 800 --top-k 80 --output-dir results_exp2
 
     # 跳過 GA 訓練，載入已有的 weights
     python run_comparison.py \\
         --image-size 1024 --range-size 4 --domain-size 8 --domain-stride 4 \\
-        --ffe-budget 500 --top-k 80 \\
-        --load-ga-weights results_feature_weight_ga/ga_optimization_result.json
-
-Output:
-    results_comparison/
-        experiment_results_TIMESTAMP.csv    詳細逐圖時間+品質數據
-        convergence_IMAGE_run0.json         三個方法的收斂曲線
-        convergence_IMAGE.png               逐圖收斂圖
-        convergence_average.png             平均收斂圖（所有圖平均）
-        ga_weights_k{K}.json               本次 GA 訓練結果
+        --ffe-budget 800 --top-k 80 --output-dir results_exp2 \\
+        --load-ga-weights results_exp2/ga_weights_k80.json
 
 畫圖:
-    python plot_convergence.py results_comparison/
+    python plot_convergence.py results_exp2/
 =============================================================================
 """
 
@@ -354,17 +345,19 @@ def main():
     parser.add_argument('--range-size',    type=int, default=4)
     parser.add_argument('--domain-size',   type=int, default=8)
     parser.add_argument('--domain-stride', type=int, default=4)
-    parser.add_argument('--ffe-budget',    type=int, default=500)
+    parser.add_argument('--ffe-budget',    type=int, default=800)
     parser.add_argument('--top-k',         type=int, default=80)
     # Image
     parser.add_argument('--image-dir',  type=str, default='images')
     parser.add_argument('--image',      type=str, default=None,
                         help='Single image name (default: all in image-dir)')
     # Output
-    parser.add_argument('--output-dir', type=str, default='results_comparison')
+    parser.add_argument('--output-dir', type=str, default='results_exp2')
     # GA
-    parser.add_argument('--train-image',     type=str, default='0043',
-                        help='Image used for GA training')
+    parser.add_argument('--train-image',     type=str, default='0003',
+                        help='Image used for GA training (should NOT be in image-dir)')
+    parser.add_argument('--train-image-dir', type=str, default='training_image',
+                        help='Directory containing the GA training image')
     parser.add_argument('--ga-pop',          type=int, default=16)
     parser.add_argument('--ga-gen',          type=int, default=10)
     parser.add_argument('--ga-sample-ratio', type=float, default=0.02,
@@ -403,17 +396,18 @@ def main():
         print(f"  Loaded weights: {np.round(ga_weights, 4)}")
         print(f"  (Training time not recorded for pre-loaded weights)")
     else:
-        # Find training image
+        # Find training image (in train_image_dir, NOT in image_dir)
         train_path = None
         for ext in ['', '.png', '.jpg', '.bmp']:
-            cand = os.path.join(args.image_dir, args.train_image + ext)
+            cand = os.path.join(args.train_image_dir, args.train_image + ext)
             if os.path.exists(cand):
                 train_path = cand
                 break
         if train_path is None:
-            print(f"Error: training image '{args.train_image}' not found.")
+            print(f"Error: training image '{args.train_image}' not found in "
+                  f"'{args.train_image_dir}/'.")
             sys.exit(1)
-        print(f"  Training image: {train_path}")
+        print(f"  Training image: {train_path}  (excluded from test set)")
         train_image = core.load_image_as_gray(train_path, args.image_size)
 
         t_ga_start = time.time()

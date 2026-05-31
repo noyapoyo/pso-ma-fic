@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """
 =============================================================================
-plot_convergence.py - Convergence Curve 視覺化
+plot_convergence.py - Convergence Curve Visualization
 =============================================================================
 
-讀取 run_experiments.py 產出的 convergence JSON 檔，
-畫出各方法的 PSNR vs FFE 收斂曲線。
+讀取各實驗產出的 convergence JSON 檔，畫出 PSNR vs FFE 收斂曲線。
 
 用法：
     # 畫單張影像的 convergence curve
-    python plot_convergence.py results_256_fair/convergence_boat_run0.json
+    python plot_convergence.py results_exp1/convergence_0007_run0.json
 
-    # 畫某個目錄下所有影像的平均 convergence curve
-    python plot_convergence.py results_256_fair/
+    # 畫某個實驗目錄下所有影像的平均 convergence curve
+    python plot_convergence.py results_exp1/
+    python plot_convergence.py results_exp2/
+    python plot_convergence.py results_exp3/
+    python plot_convergence.py results_exp4/
 
     # 指定輸出檔名
-    python plot_convergence.py results_256_fair/ -o convergence.pdf
+    python plot_convergence.py results_exp1/ -o exp1_convergence.png
 =============================================================================
 """
 
@@ -34,28 +36,38 @@ except ImportError:
     sys.exit(1)
 
 
-# 方法的顯示設定
+# Method display styles
+# Each entry: label (legend text), color, ls (linestyle), marker
 METHOD_STYLES = {
-    'pso':                {'label': 'PSO',          'color': '#1f77b4', 'ls': '--',  'marker': 'o'},
-    'ppso':               {'label': 'PPSO',         'color': '#ff7f0e', 'ls': '--',  'marker': 's'},
-    'memetic_pso':        {'label': 'Memetic PSO',  'color': '#2ca02c', 'ls': '-.',  'marker': '^'},
-    'memetic_ppso':       {'label': 'Memetic PPSO', 'color': '#d62728', 'ls': '-.',  'marker': 'D'},
-    'feature_guided_pso': {'label': 'FG-PSO',       'color': '#9467bd', 'ls': '-',   'marker': '*'},
-    'feature_kdtree':     {'label': 'FGDS (K=40)',  'color': '#8c564b', 'ls': '-',   'marker': 'P'},
-    # K-sensitivity
-    'fgds_k5':            {'label': 'FGDS K=5',     'color': '#bcbd22', 'ls': ':',   'marker': '.'},
-    'fgds_k10':           {'label': 'FGDS K=10',    'color': '#17becf', 'ls': ':',   'marker': 'v'},
-    'fgds_k20':           {'label': 'FGDS K=20',    'color': '#e377c2', 'ls': '--',  'marker': '<'},
-    'fgds_k40':           {'label': 'FGDS K=40',    'color': '#8c564b', 'ls': '-',   'marker': 'P'},
-    'fgds_k80':           {'label': 'FGDS K=80',    'color': '#7f7f7f', 'ls': '-',   'marker': '>'},
-    'fgds_k160':          {'label': 'FGDS K=160',   'color': '#aec7e8', 'ls': '-',   'marker': 'h'},
-    # Feature weight GA
-    'fgds_equal_weights': {'label': 'FGDS (equal w)', 'color': '#8c564b', 'ls': '--', 'marker': 'P'},
-    'fgds_ga_weights':    {'label': 'FGDS (GA w)',    'color': '#e41a1c', 'ls': '-',  'marker': '*'},
-    # Three-way comparison (run_comparison.py)
-    'fgds_pairwise': {'label': 'FGDS Pairwise (no KDTree)', 'color': '#ff7f0e', 'ls': '--', 'marker': 's'},
-    'fgds_kdtree':   {'label': 'FGDS + KDTree (equal w)',   'color': '#1f77b4', 'ls': '-',  'marker': 'P'},
-    'fgds_ga':       {'label': 'FGDS + KDTree + GA weights','color': '#d62728', 'ls': '-',  'marker': '*'},
+    # === Experiment 1: PSO variants ===
+    'pso':                {'label': 'PSO',                  'color': '#1f77b4', 'ls': '--',  'marker': 'o'},
+    'memetic_pso':        {'label': 'Memetic PSO',          'color': '#2ca02c', 'ls': '-.',  'marker': '^'},
+    'feature_guided_pso': {'label': 'FG-PSO (K=40)',        'color': '#9467bd', 'ls': '-',   'marker': '*'},
+    'feature_exhaustive': {'label': 'FGDS Exhaustive (K=40)', 'color': '#d62728', 'ls': '-', 'marker': 'P'},
+
+    # === Experiment 2: Three-way FGDS comparison ===
+    'fgds_pairwise': {'label': 'FGDS Pairwise (K=80, no KDTree)', 'color': '#ff7f0e', 'ls': '--', 'marker': 's'},
+    'fgds_kdtree':   {'label': 'FGDS + KDTree (K=80)',             'color': '#1f77b4', 'ls': '-',  'marker': 'P'},
+    'fgds_ga':       {'label': 'FGDS + KDTree + GA (K=80)',        'color': '#d62728', 'ls': '-',  'marker': '*'},
+
+    # === Experiment 3: K sensitivity ===
+    'fgds_k5':   {'label': 'FGDS K=5',   'color': '#bcbd22', 'ls': ':',  'marker': '.'},
+    'fgds_k10':  {'label': 'FGDS K=10',  'color': '#17becf', 'ls': ':',  'marker': 'v'},
+    'fgds_k20':  {'label': 'FGDS K=20',  'color': '#e377c2', 'ls': '--', 'marker': '<'},
+    'fgds_k40':  {'label': 'FGDS K=40',  'color': '#8c564b', 'ls': '--', 'marker': 'P'},
+    'fgds_k80':  {'label': 'FGDS K=80',  'color': '#d62728', 'ls': '-',  'marker': '>'},
+    'fgds_k160': {'label': 'FGDS K=160', 'color': '#1f77b4', 'ls': '-',  'marker': 'h'},
+
+    # === Experiment 4: Random vs FGDS baseline ===
+    'random_k80': {'label': 'Random-80 Exhaustive',       'color': '#7f7f7f', 'ls': '--', 'marker': 'x'},
+    # fgds_k80 already defined above
+
+    # === Others / legacy ===
+    'ppso':               {'label': 'PPSO',              'color': '#ff7f0e', 'ls': '--', 'marker': 's'},
+    'memetic_ppso':       {'label': 'Memetic PPSO',      'color': '#8c1a1a', 'ls': '-.', 'marker': 'D'},
+    'feature_kdtree':     {'label': 'FGDS KDTree',       'color': '#8c564b', 'ls': '-',  'marker': 'P'},
+    'fgds_equal_weights': {'label': 'FGDS (equal w)',    'color': '#8c564b', 'ls': '--', 'marker': 'P'},
+    'fgds_ga_weights':    {'label': 'FGDS (GA w)',       'color': '#e41a1c', 'ls': '-',  'marker': '*'},
 }
 
 
@@ -147,12 +159,9 @@ def plot_single(data, title="Convergence Curve", output_path=None):
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
 
-    if output_path:
-        fig.savefig(output_path, dpi=150)
-        print(f"  Saved: {output_path}")
-    else:
-        fig.savefig('convergence_curve.png', dpi=150)
-        print(f"  Saved: convergence_curve.png")
+    out = output_path or 'convergence_curve.png'
+    fig.savefig(out, dpi=150)
+    print(f"  Saved: {out}")
     plt.close(fig)
 
 
