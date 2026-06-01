@@ -119,18 +119,47 @@ Standard Particle Swarm Optimization (PSO) is a population-based optimization me
 When mapped onto the discrete FIC domain, each particle $\mathbf{X}_i$ represents a candidate contractive transformation vector, defining the discrete spatial offset location $(t_x, t_y)$ of a domain block, the orientation index $d$, and the mass parameters $p$ and $q$ \cite{FICOriginal, PSOFIC}. While standard PSO achieves order-of-magnitude acceleration compared to exhaustive search, its reliance on a single global best exemplar ($\mathbf{G}_{\text{BEST}}$) often causes premature convergence within the complex, highly multimodal fitness landscapes of image domain pools, occasionally leading to sub-optimal block matching and degraded reconstruction quality.
 
 \subsubsection{Pyramid Particle Swarm Optimization (PPSO)}
-To resolve the premature stagnation issues of canonical PSO, Pyramid Particle Swarm Optimization (PPSO) introduces a hierarchical, multi-exemplar architecture \cite{li2022pyramid}. PPSO dynamically organizes candidate solutions into a multi-tiered pyramid based on their instantaneous fitness values (i.e., minimal MSE). Instead of all particles converging toward a single global leader, PPSO establishes cooperative-competitive learning channels. 
+To mitigate the premature stagnation behavior of canonical PSO, Pyramid Particle Swarm Optimization (PPSO) replaces the single-exemplar topology with a hierarchical, multi-exemplar search architecture \cite{li2022pyramid}. At each iteration, the particle population is sorted according to fitness and partitioned into a finite set of pyramid tiers, ranging from a small elite tier at the apex to a larger exploratory tier at the base. Let $\mathcal{L}_1, \mathcal{L}_2, \dots, \mathcal{L}_H$ denote these tiers ordered from top to bottom, where particles in $\mathcal{L}_1$ have the best current fitness values.
 
-Horizontally, particles within the same tier compete; vertically, subordinate particles learn from superior exemplars across higher tiers \cite{li2022pyramid}. This topological bifurcation effectively preserves population diversity and significantly accelerates macro-spatial convergence. In the context of FIC, this ensures that the domain codebook is explored comprehensively without computational trapping in localized distortion minima.
+Within each tier, particles are randomly paired and subjected to pairwise competition. For a pair $(i,j)$ in the same tier, the particle with lower distortion is designated the \emph{winner} and the other the \emph{loser}. The loser updates its trajectory by learning from the winner within the same tier, whereas the winner learns from an exemplar sampled from the immediately superior tier and from an exemplar sampled from the elite tier \cite{li2022pyramid}. In a generic form, the loser update is written as
+\begin{equation}
+\mathbf{V}_{\ell}(t+1)=w\mathbf{V}_{\ell}(t)+c_1r_1\left(\mathbf{X}_{w}(t)-\mathbf{X}_{\ell}(t)\right),
+\end{equation}
+where $\ell$ and $w$ denote the loser and winner, respectively. For a winner particle, the update incorporates both a higher-tier exemplar $\mathbf{X}_{u}$ and a top-tier elite exemplar $\mathbf{X}_{e}$:
+\begin{equation}
+\mathbf{V}_{w}(t+1)=w\mathbf{V}_{w}(t)+c_1r_1\left(\mathbf{X}_{u}(t)-\mathbf{X}_{w}(t)\right)+c_2r_2\left(\mathbf{X}_{e}(t)-\mathbf{X}_{w}(t)\right).
+\end{equation}
+The particle position is then advanced by
+\begin{equation}
+\mathbf{X}(t+1)=\mathbf{X}(t)+\mathbf{V}(t+1).
+\end{equation}
+
+This competition-cooperation mechanism induces a stratified search dynamic: upper tiers emphasize exploitation around already promising regions, while lower tiers preserve broader exploration. For the FIC block-matching problem, where the search space over domain indices and geometric transforms is highly multimodal and discrete after decoding, such a multi-leader topology is particularly advantageous. It reduces the risk that the entire swarm collapses prematurely toward a single sub-optimal attractor and thereby improves the probability of locating higher-quality domain-range correspondences.
 
 \subsubsection{Memetic Algorithms (MAs) and Local Search Integration}
-While PPSO provides exceptional global search capabilities and avoids premature convergence, swarm-based algorithms generally lack the fine-grained exploitative precision required for pixel-perfect image block matching. Memetic Algorithms (MAs) address this exploration-exploitation imbalance by systematically embedding deterministic Local Search (LS) strategies into the global evolutionary loop. 
+While PPSO provides a stronger global search mechanism than standard PSO, swarm-based updates alone still lack the deterministic, fine-grained exploitative accuracy required for precise block matching in FIC. Memetic Algorithms (MAs) address this exploration-exploitation imbalance by embedding explicit Local Search (LS) operators into the global search loop. 
 
-Mathematically, let $\mathcal{X}$ denote the discrete optimization domain of codebook coordinates, and $f: \mathcal{X} \rightarrow \mathbb{R}$ represent the MSE objective function \cite{FICOriginal}. While the PPSO operators execute coarse-grained global routing, a memetic component applies a localized optimization mapping $\Lambda: \mathcal{X} \rightarrow \mathcal{X}$ to an individual $x \in \mathcal{X}$ within its immediate neighborhood structure, enforcing strict monotonic convergence:
+Mathematically, let $\mathcal{X}$ denote the discrete optimization domain of feasible code vectors, and let $f: \mathcal{X} \rightarrow \mathbb{R}$ be the distortion objective defined by the block-wise MSE \cite{FICOriginal}. The PPSO stage generates a candidate solution $x \in \mathcal{X}$, after which a memetic refinement operator $\Lambda: \mathcal{X} \rightarrow \mathcal{X}$ is applied within a local neighborhood of $x$, enforcing monotonic improvement:
 \begin{equation}
 f(\Lambda(x)) \le f(x).
 \end{equation}
-By coupling the robust global exploration of PPSO with the strict, fine-grained exploitative tracking of an MA, the algorithm ensures exact coordinate offset matching.
+In the present framework, the memetic component is not introduced as an independent genetic stage; rather, it functions as a deterministic refinement layer coupled to the PPSO search. Specifically, after periodic PPSO updates, LS is applied to the top-performing subset of particles, and an additional terminal LS pass is imposed on the final global best solution. The refinement stage is composed of two sequential operators.
+
+The first operator is an \emph{isometry refinement} procedure. Let the current candidate be $x=(d,k)$, where $d$ denotes the selected domain index and $k$ denotes the geometric transformation index. Holding $d$ fixed, the operator evaluates the complete admissible transform set $\mathcal{K}=\{0,1,\dots,7\}$ and computes
+\begin{equation}
+k^{*}=\arg\min_{k \in \mathcal{K}} f(d,k).
+\end{equation}
+The refined solution is then updated from $(d,k)$ to $(d,k^{*})$. Hence, this operator performs an exact local optimization over the discrete transformation subspace and corrects mismatches introduced by the continuous-to-discrete decoding of particle states.
+
+The second operator is a \emph{spatial neighborhood refinement} procedure. Let $\mathcal{N}(d)$ denote the set of domain blocks located in the immediate spatial neighborhood of the current domain block, typically defined by adjacent positions under the domain sampling stride. With the refined transform index $k^{*}$ held fixed, the operator solves
+\begin{equation}
+d^{*}=\arg\min_{d' \in \mathcal{N}(d)} f(d',k^{*}),
+\end{equation}
+thereby replacing the current domain assignment with the best local spatial neighbor whenever an improvement is obtained. This step exploits the empirical continuity of image self-similarity, namely that domain blocks spatially adjacent to a promising candidate frequently provide lower-distortion correspondences for the same range block.
+
+Whenever either refinement step yields a lower distortion, the improved solution is written back to the current particle state, namely its decoded position and associated fitness value, after which the global best record is updated if necessary. In this sense, the memetic layer acts as a problem-specific exploitation operator that complements the coarse-grained routing behavior of PPSO with exact discrete transform correction and local coordinate adjustment.
+
+Accordingly, the proposed memetic mechanism serves as a domain-specific exploitation module that complements the global routing behavior of PPSO. PPSO first directs particles toward promising regions of the codebook, whereas the memetic layer subsequently performs discrete transform correction and local coordinate refinement. This division of labor yields a more stable balance between global exploration and local precision, which is critical for obtaining high-quality fractal codes under restricted evaluation budgets.
 
 \section{Conclusion}
 \section*{Acknowledgment}
