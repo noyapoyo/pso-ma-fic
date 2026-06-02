@@ -53,13 +53,13 @@ Fractal image compression, feature-guided search, domain block selection, KD-Tre
 \section{Introduction}
 %% ================================================================
 
-Fractal Image Compression (FIC) encodes an image as a set of contractive affine maps between image regions, exploiting self-affine redundancy to achieve compact, resolution-independent representations \cite{Barnsley1985, FICOriginal}. Decoding is fast: iterating the stored maps from any starting image converges to a fixed-point reconstruction. Encoding, however, is the opposite. For every non-overlapping range block, the encoder must find, among all domain blocks and all eight geometric isometries, the transformation that minimizes reconstruction error. This search grows quadratically with image resolution and is the dominant cost of FIC.
+Fractal Image Compression (FIC) encodes an image as a set of contractive affine maps between image regions, exploiting self-affine redundancy to achieve compact, resolution-independent representations~\cite{Barnsley1985, FICOriginal}. Decoding is fast: iterating the stored maps from any starting image converges to a fixed-point reconstruction. Encoding, however, is the opposite. For every non-overlapping range block, the encoder must find, among all domain blocks and all eight geometric isometries, the transformation that minimizes reconstruction error. This search grows quadratically with image resolution and is the dominant cost of FIC.
 
-A long-standing line of work replaces the exhaustive search with metaheuristics. Muruganandham and Wahida Banu \cite{PSOFIC} applied Particle Swarm Optimization (PSO) to reduce encoding time, and genetic algorithms \cite{wu2007schema, wu2006spatial, mitra1998technique} and more recent swarm variants \cite{li2022pyramid} have been explored in the same spirit. These methods treat the domain index and isometry of each range block as the variables to be optimized, and search that space with a population of candidate solutions.
+A long-standing line of work replaces the exhaustive search with metaheuristics. Muruganandham and Wahida Banu~\cite{PSOFIC} applied Particle Swarm Optimization (PSO) to reduce encoding time, and genetic algorithms~\cite{wu2007schema, wu2006spatial, mitra1998technique} and more recent swarm variants~\cite{li2022pyramid} have been explored in the same spirit. These methods treat the domain index and isometry of each range block as the variables to be optimized, and search that space with a population of candidate solutions.
 
-We began by reproducing this strategy on high-resolution ($1024\times1024$) images and quickly hit a wall. At this scale a single range block has $P\!\times\!8 \approx 5.2\times10^5$ domain--isometry candidates. A PSO swarm of 40 particles therefore inspects well under $0.1\%$ of the space at initialization, and because the FIC objective over domain indices is highly non-smooth---spatially adjacent domains can have completely different content---the swarm has no usable gradient to follow and converges to solutions far from the optimum. Adding memetic local search \cite{moscato1989evolution} improves quality but cannot repair this: if the swarm settles in the wrong region of the pool, refining its neighborhood does not help.
+We began by reproducing this strategy on high-resolution ($1024\times1024$) images and quickly hit a wall. At this scale a single range block has $P\!\times\!8 \approx 5.2\times10^5$ domain--isometry candidates. A PSO swarm of 40 particles therefore inspects well under $0.1\%$ of the space at initialization, and because the FIC objective over domain indices is highly non-smooth---spatially adjacent domains can have completely different content---the swarm has no usable gradient to follow and converges to solutions far from the optimum. Adding memetic local search~\cite{moscato1989evolution} improves quality but cannot repair this: if the swarm settles in the wrong region of the pool, refining its neighborhood does not help.
 
-This led us to a different diagnosis. The difficulty is not that the optimizer is weak; it is that \emph{the search space handed to the optimizer is bad}. All domain-matching metaheuristics search blindly over the full pool, spending most of their budget on structurally dissimilar blocks that can never produce a good match. Classical FIC acceleration recognized a version of this---Fisher's block classification \cite{compression1995fractal} and Saupe's reformulation of block matching as nearest-neighbor search in feature space \cite{saupe1995accelerating}---but these ideas predate, and were never reconciled with, the metaheuristic FIC literature for high-resolution images.
+This led us to a different diagnosis. The difficulty is not that the optimizer is weak; it is that \emph{the search space handed to the optimizer is bad}. All domain-matching metaheuristics search blindly over the full pool, spending most of their budget on structurally dissimilar blocks that can never produce a good match. Classical FIC acceleration recognized a version of this---Fisher's block classification~\cite{compression1995fractal} and Saupe's reformulation of block matching as nearest-neighbor search in feature space~\cite{saupe1995accelerating}---but these ideas predate, and were never reconciled with, the metaheuristic FIC literature for high-resolution images.
 
 Our central decision is therefore to \textbf{move the heuristic from block \emph{matching} to block \emph{selection}}. Instead of optimizing which domain matches each range block, we use a fast, structure-aware heuristic to \emph{select} a small, high-quality candidate pool of domains per range block, and then search that pool to optimality. We call this \textbf{Feature-Guided Domain Selection (FGDS)}. Concretely, FGDS (i) computes an 8-dimensional isometry-invariant descriptor for every block, (ii) uses a KD-Tree to retrieve the $K$ nearest domains for each range block in a learned weighted feature space, and (iii) exhaustively evaluates the $K\!\times\!8$ candidates in that pool.
 
@@ -81,7 +81,7 @@ The contributions are:
 
 \subsection{Fractal Image Compression}
 
-FIC originates from the theory of Iterated Function Systems (IFS) \cite{Barnsley1985, barnsley2014fractals}, whose Collage Theorem and Contractive Mapping Fixed-Point Theorem justify representing an image by contractive self-maps \cite{barnsley1988better}. Jacquin \cite{FICOriginal, 241507} turned this into a practical block-based coder.
+FIC originates from the theory of Iterated Function Systems (IFS)~\cite{Barnsley1985, barnsley2014fractals}, whose Collage Theorem and Contractive Mapping Fixed-Point Theorem justify representing an image by contractive self-maps~\cite{barnsley1988better}. Jacquin~\cite{FICOriginal, 241507} turned this into a practical block-based coder.
 
 A gray image of size $N\times N$ is partitioned into a range pool $\mathcal{R}$ of $M=(N/L)^2$ non-overlapping $L\times L$ range blocks and a domain pool $\mathcal{D}$ of $P=\lfloor(N-2L)/\delta+1\rfloor^2$ overlapping $2L\times2L$ domain blocks taken with stride $\delta$; each domain block is downsampled to $L\times L$ by $2\times2$ average pooling. For range block $v$ and a domain block $u$, the encoder seeks a contractive affine map combining one of eight Dihedral isometries $T_k$ ($k\in\{0,\dots,7\}$) with a contrast $s$ and brightness $o$:
 \begin{equation}
@@ -113,7 +113,7 @@ Because all methods use identical partitioning and quantization, CR is the same 
 
 \subsection{Acceleration and metaheuristic FIC}
 
-Exhaustive FIC evaluates all $P\!\times\!8$ candidates per range block. Classical accelerations include quad-tree partitioning \cite{compression1995fractal}, tree-structured codebook classification \cite{478245, hurtgen1993fast}, and parallel hardware \cite{hufnagl2000algorithms, vidya2000architecture}. Saupe \cite{saupe1995accelerating} reframed block matching as multi-dimensional nearest-neighbor search---conceptually the closest ancestor of our approach. Independently, the metaheuristic line treats $(d,k)$ as decision variables and searches with PSO \cite{PSOFIC, PSOOriginal, eberhart1995new}, genetic algorithms \cite{wu2007schema, wu2006spatial, mitra1998technique}, or pyramid swarm strategies \cite{li2022pyramid}. Our work connects the two: we use feature-space nearest-neighbor \emph{selection} to build the search space, then argue and demonstrate that the metaheuristic \emph{matcher} inside it is unnecessary, and we additionally use a metaheuristic (GA) one level up, to \emph{design} the feature space.
+Exhaustive FIC evaluates all $P\!\times\!8$ candidates per range block. Classical accelerations include quad-tree partitioning~\cite{compression1995fractal}, tree-structured codebook classification~\cite{478245, hurtgen1993fast}, and parallel hardware~\cite{hufnagl2000algorithms, vidya2000architecture}. Saupe~\cite{saupe1995accelerating} reframed block matching as multi-dimensional nearest-neighbor search---conceptually the closest ancestor of our approach. Independently, the metaheuristic line treats $(d,k)$ as decision variables and searches with PSO~\cite{PSOFIC, PSOOriginal, eberhart1995new}, genetic algorithms~\cite{wu2007schema, wu2006spatial, mitra1998technique}, or pyramid swarm strategies~\cite{li2022pyramid}. Our work connects the two: we use feature-space nearest-neighbor \emph{selection} to build the search space, then argue and demonstrate that the metaheuristic \emph{matcher} inside it is unnecessary, and we additionally use a metaheuristic (GA) one level up, to \emph{design} the feature space.
 
 
 %% ================================================================
@@ -125,7 +125,7 @@ Exhaustive FIC evaluates all $P\!\times\!8$ candidates per range block. Classica
 This section describes the methods we compare, in the order in which they led us to FGDS. All share the fitness function of (\ref{eq:mse})--(\ref{eq:so}) and the same FFE accounting, so differences reflect only \emph{search strategy}.
 
 \subsection{Standard PSO (baseline)}
-Following \cite{PSOFIC}, each particle is a continuous vector $\mathbf{X}_j=[d_j,k_j]$ decoded to a (domain index, isometry) pair by rounding and clamping. The swarm updates
+Following~\cite{PSOFIC}, each particle is a continuous vector $\mathbf{X}_j=[d_j,k_j]$ decoded to a (domain index, isometry) pair by rounding and clamping. The swarm updates
 \begin{align}
 \mathbf{V}_j(t\!+\!1) &= w\mathbf{V}_j(t) + c_1 r_1(\mathbf{P}_{\text{best},j}\!-\!\mathbf{X}_j) + c_2 r_2(\mathbf{G}_{\text{best}}\!-\!\mathbf{X}_j),\\
 \mathbf{X}_j(t\!+\!1) &= \mathbf{X}_j(t) + \mathbf{V}_j(t\!+\!1),
@@ -197,7 +197,7 @@ For range block $v_i$ we want the $K$ domains nearest in weighted feature space,
 \mathcal{P}_i=\underset{|S|=K}{\arg\min}\sum_{j\in S}\bigl\|\mathbf w\odot(\hat{\mathbf f}_{R,i}-\hat{\mathbf f}_{D,j})\bigr\|^2 .
 \label{eq:knn}
 \end{equation}
-Pre-multiplying both feature sets by $\mathbf w$ turns this into plain Euclidean nearest-neighbor search, so a standard KD-Tree \cite{bentley1975multidimensional} applies. A naive pairwise scan costs $O(MPF)$ (here $\sim$180\,s); the KD-Tree costs $O(PF\log P)$ to build and $O(MK\log P)$ to query, completing in under 0.5\,s in practice. With $K\!=\!80$ the per-range space shrinks from $P\!\times\!8=520{,}200$ to $640$ candidates, over $6\times10^3$ smaller. KD-Trees remain efficient at $F\!=\!8$ dimensions (the curse of dimensionality sets in well above $\sim$20).
+Pre-multiplying both feature sets by $\mathbf w$ turns this into plain Euclidean nearest-neighbor search, so a standard KD-Tree~\cite{bentley1975multidimensional} applies. A naive pairwise scan costs $O(MPF)$ (here $\sim$180\,s); the KD-Tree costs $O(PF\log P)$ to build and $O(MK\log P)$ to query, completing in under 0.5\,s in practice. With $K\!=\!80$ the per-range space shrinks from $P\!\times\!8=520{,}200$ to $640$ candidates, over $6\times10^3$ smaller. KD-Trees remain efficient at $F\!=\!8$ dimensions (the curse of dimensionality sets in well above $\sim$20).
 
 \subsection{Stage 3: Exhaustive search in the pool}
 Within $\mathcal{P}_i$ we evaluate all $K\!\times\!8$ domain--isometry pairs via (\ref{eq:mse})--(\ref{eq:so}) and keep the minimum-MSE candidate with $|s|<1$. Unlike PSO, which rounds continuous positions to discrete indices and may skip candidates, this scan is exact within the pool. With $K\!=\!80$ it costs $640$ FFEs per block---fewer than the budgets given to the PSO baselines---yet it is guaranteed optimal over the selected domains.
@@ -206,7 +206,7 @@ Within $\mathcal{P}_i$ we evaluate all $K\!\times\!8$ domain--isometry pairs via
 \subsection{Learning feature weights with a Genetic Algorithm}
 \label{sec:ga_weights}
 
-Equal weighting ($\mathbf w=\mathbf 1$) assumes all eight dimensions matter equally for pool quality, which is not true: the dimensions play different roles in the affine match of (\ref{eq:so}). We therefore learn $\mathbf w\in\mathbb{R}^8_{>0}$ with a Genetic Algorithm \cite{holland1975adaptation} run \emph{once, offline}, on a single training image disjoint from the test set, and apply the result to all test images at zero extra encoding cost. This is a deliberately different use of a metaheuristic from the discarded PSO matcher: GA optimizes the \emph{design of the feature space}, not the per-block search.
+Equal weighting ($\mathbf w=\mathbf 1$) assumes all eight dimensions matter equally for pool quality, which is not true: the dimensions play different roles in the affine match of (\ref{eq:so}). We therefore learn $\mathbf w\in\mathbb{R}^8_{>0}$ with a Genetic Algorithm~\cite{holland1975adaptation} run \emph{once, offline}, on a single training image disjoint from the test set, and apply the result to all test images at zero extra encoding cost. This is a deliberately different use of a metaheuristic from the discarded PSO matcher: GA optimizes the \emph{design of the feature space}, not the per-block search.
 
 \paragraph*{Fitness} An individual is a weight vector $\mathbf w$. To evaluate it we run weighted feature extraction $\to$ KD-Tree $\to$ exhaustive search on a random 2\% sample of range blocks ($\approx$1{,}300 blocks for $1024^2$) and return the average MSE; fitness is $-\mathrm{avg\,MSE}$. Raw features, domain statistics, and isometry tables are precomputed once, so each evaluation only re-weights, rebuilds the tree, and scans the sample.
 
@@ -224,7 +224,7 @@ Equal weighting ($\mathbf w=\mathbf 1$) assumes all eight dimensions matter equa
     \STATE Copy top-2 elites to next generation
     \FOR{each remaining slot}
         \STATE parents $\leftarrow$ tournament selection (size 3)
-        \STATE child $\leftarrow$ BLX-$\alpha$ crossover ($\alpha\!=\!0.5$, rate 0.8) \cite{eshelman1993real}
+        \STATE child $\leftarrow$ BLX-$\alpha$ crossover ($\alpha\!=\!0.5$, rate 0.8)~\cite{eshelman1993real}
         \STATE child $\leftarrow$ Gaussian mutation ($\sigma\!=\!0.25$, rate 0.4)
         \STATE child $\leftarrow\max(\text{child},0.05)$
     \ENDFOR
@@ -233,7 +233,7 @@ Equal weighting ($\mathbf w=\mathbf 1$) assumes all eight dimensions matter equa
 \end{algorithmic}
 \end{algorithm}
 
-\paragraph*{Operators} Individual 0 is the equal-weight baseline; the rest are drawn from $U(0.3,2.5)^8$. Selection is tournament (size 3); crossover is BLX-$\alpha$ ($\alpha\!=\!0.5$, rate 0.8) \cite{eshelman1993real}; mutation perturbs 1--3 dimensions by $\mathcal N(0,0.25)$ at rate 0.4; weights are clamped positive; two elites are preserved. We use $N_{\text{pop}}\!=\!16$, $G\!=\!10$, $\rho\!=\!0.02$, $K\!=\!80$, training on the held-out image 0003. The sampled MSE improves from 72.82 (equal weights) to 71.77 over ten generations, and the search converges to
+\paragraph*{Operators} Individual 0 is the equal-weight baseline; the rest are drawn from $U(0.3,2.5)^8$. Selection is tournament (size 3); crossover is BLX-$\alpha$ ($\alpha\!=\!0.5$, rate 0.8)~\cite{eshelman1993real}; mutation perturbs 1--3 dimensions by $\mathcal N(0,0.25)$ at rate 0.4; weights are clamped positive; two elites are preserved. We use $N_{\text{pop}}\!=\!16$, $G\!=\!10$, $\rho\!=\!0.02$, $K\!=\!80$, training on the held-out image 0003. The sampled MSE improves from 72.82 (equal weights) to 71.77 over ten generations, and the search converges to
 \begin{equation}
 \mathbf{w}^* = [\,0.18,\ 1.36,\ 0.97,\ 0.96,\ 1.29,\ 1.04,\ 1.00,\ 0.75\,]
 \label{eq:learned_w}
@@ -274,13 +274,13 @@ Table~\ref{tab:complexity} summarizes the costs. FGDS trades a sub-second KD-Tre
 Experiments run on an AMD EPYC 7313P 16-core server with FreeBSD 15.0. All methods are implemented in Python/NumPy; FGDS uses SciPy's \texttt{KDTree}.
 
 \subsubsection{Data}
-We use ten images from DIV2K \cite{div2k}---0002, 0007, 0029, 0030, 0032, 0037, 0043, 0049, 0051, 0060---each resized to $1024\times1024$ and converted to 8-bit grayscale. The GA training image (0003) is \emph{not} in the test set, so all reported GA results are on unseen images.
+We use ten images from DIV2K~\cite{div2k}---0002, 0007, 0029, 0030, 0032, 0037, 0043, 0049, 0051, 0060---each resized to $1024\times1024$ and converted to 8-bit grayscale. The GA training image (0003) is \emph{not} in the test set, so all reported GA results are on unseen images.
 
 \subsubsection{FIC parameters}
 $L\!=\!4$, $2L\!=\!8$, $\delta\!=\!4$, giving $M\!=\!65{,}536$ range and $P\!=\!65{,}025$ domain blocks, $\mathrm{CR}\approx3.7{:}1$, decode 20 iterations.
 
 \subsubsection{Budget and protocol}
-We fix an FFE budget of 800 per range block. This is generous for FGDS---at $K\!=\!80$ it finishes in $K\!\times\!8\!=\!640$ FFEs and is flat thereafter---and is chosen so the convergence plots show, on a common axis, exactly when each method saturates. Stochastic methods (PSO, memetic PSO, FG-PSO) run 5 times per image with seeds $\{42,\dots,46\}$; FGDS is deterministic. Pairwise comparisons use the Wilcoxon signed-rank test \cite{wilcoxon1945individual} over the $n\!=\!10$ images.
+We fix an FFE budget of 800 per range block. This is generous for FGDS---at $K\!=\!80$ it finishes in $K\!\times\!8\!=\!640$ FFEs and is flat thereafter---and is chosen so the convergence plots show, on a common axis, exactly when each method saturates. Stochastic methods (PSO, memetic PSO, FG-PSO) run 5 times per image with seeds $\{42,\dots,46\}$; FGDS is deterministic. Pairwise comparisons use the Wilcoxon signed-rank test~\cite{wilcoxon1945individual} over the $n\!=\!10$ images.
 
 \subsubsection{Experiments}
 The study is a single connected line of evidence, organized as four runs:
