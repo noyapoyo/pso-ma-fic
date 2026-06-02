@@ -71,7 +71,7 @@ The contributions are:
     \item \textbf{A reframing of metaheuristics in FIC} from per-block domain matching to domain-block \emph{selection}, supported by an ablation showing that exhaustive search dominates PSO inside a feature-guided pool.
     \item \textbf{FGDS}, an 8-dimensional isometry-invariant descriptor plus KD-Tree nearest-neighbor selection, which cuts candidate-pool construction from $\sim$180\,s to under 0.5\,s ($\sim$1390$\times$) and reduces the per-range search space by over $6\times10^3$.
     \item \textbf{A GA-based feature-weight learner} that discovers, offline on a single held-out image, the relative importance of each feature dimension and transfers it to unseen images, motivated by the structure of the FIC affine model.
-    \item \textbf{A controlled study on ten high-resolution images}, including a random-pool control and a $K$-sensitivity sweep, with Wilcoxon signed-rank significance ($n=10$), establishing that the feature-guided pool---not the inner optimizer---is the source of the improvement.
+    \item \textbf{A controlled study on ten high-resolution images}, including a random-pool control and a \mbox{$K$-sensitivity} sweep, with Wilcoxon signed-rank significance ($n=10$), establishing that the feature-guided pool---not the inner optimizer---is the source of \mbox{the improvement}.
 \end{enumerate}
 
 
@@ -190,7 +190,7 @@ The descriptor must (R1) discriminate structurally dissimilar blocks and (R2) be
 \end{equation}
 Here $\mu$ and $\sigma$ are the block mean and standard deviation (both exactly isometry-invariant). $\bar g_h=\mathrm{mean}|b(i,j\!+\!1)\!-\!b(i,j)|$ and $\bar g_v=\mathrm{mean}|b(i\!+\!1,j)\!-\!b(i,j)|$ are mean gradient magnitudes capturing texture; they are invariant under flips and merely swap under $90^\circ$ rotation (quasi-invariant). The $\hat q_1\!\le\!\dots\!\le\!\hat q_4$ are the four quadrant means \emph{sorted ascending}: rotations and reflections only permute quadrants, so sorting makes them fully isometry-invariant. Each feature costs $O(L^2)$.
 
-Features are $z$-score normalized with domain-pool statistics, $\hat{\mathbf f}=(\mathbf f-\boldsymbol\mu_D)/(\boldsymbol\sigma_D+10^{-8})$, so every dimension contributes comparably to Euclidean distance before weighting.
+Features are $z$-score normalized with domain-pool statistics, $\hat{\mathbf f}=(\mathbf f-\boldsymbol\mu_D)/(\boldsymbol\sigma_D+10^{-8})$, so every dimension contributes comparably to Euclidean distance \mbox{before weighting}.
 
 \subsection{Stage 2: KD-Tree candidate selection}
 For range block $v_i$ we want the $K$ domains nearest in weighted feature space,
@@ -207,7 +207,7 @@ Within $\mathcal{P}_i$ we evaluate all $K\!\times\!8$ domain--isometry pairs via
 \subsection{Learning feature weights with a Genetic Algorithm}
 \label{sec:ga_weights}
 
-Equal weighting ($\mathbf w=\mathbf 1$) assumes all eight dimensions matter equally for pool quality, which is not true: the dimensions play different roles in the affine match of (\ref{eq:so}). We therefore learn $\mathbf w\in\mathbb{R}^8_{>0}$ with a Genetic Algorithm~\cite{holland1975adaptation} run \emph{once, offline}, on a single training image disjoint from the test set, and apply the result to all test images at zero extra encoding cost. This is a deliberately different use of a metaheuristic from the discarded PSO matcher: GA optimizes the \emph{design of the feature space}, not the per-block search.
+Equal weighting ($\mathbf w=\mathbf 1$) assumes all eight dimensions matter equally for pool quality, which is not true: the dimensions play different roles in the affine match of (\ref{eq:so}). We therefore learn $\mathbf w\in\mathbb{R}^8_{>0}$ with a Genetic Algorithm~\cite{holland1975adaptation} run \emph{once, offline}, on a single training image disjoint from the test set, and apply the result to all test images at zero extra encoding cost. This is a deliberately different use of a metaheuristic from the discarded PSO matcher: GA optimizes the \emph{design of the feature space}, not the per-block~search.
 
 \paragraph*{Fitness} An individual is a weight vector $\mathbf w$. To evaluate it we run weighted feature extraction $\to$ KD-Tree $\to$ exhaustive search on a random 2\% sample of range blocks ($\approx$1{,}300 blocks for $1024^2$) and return the average MSE; fitness is $-\mathrm{avg\,MSE}$. Raw features, domain statistics, and isometry tables are precomputed once, so each evaluation only re-weights, rebuilds the tree, and scans the sample.
 
@@ -477,7 +477,7 @@ The broader contribution is the design principle: when a metaheuristic underperf
 
 \section*{Acknowledgment}
 
-The authors thank the Department of Computer Science and Information Engineering, National Taiwan Normal University.
+The authors thank the Department of Computer \mbox{Science} and Information Engineering, National Taiwan Normal~University.
 
 \clearpage
 \bibliographystyle{IEEEtran}
