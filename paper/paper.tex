@@ -13,9 +13,11 @@
 \usepackage{flushend}
 % Use Times-like font (compatible with pdflatex and xelatex)
 % If using XeLaTeX, you may replace the next two lines with:
-%   \usepackage{fontspec}
-%   \setmainfont{Times New Roman}
-\usepackage{mathptmx}
+\usepackage{fontspec}
+\setmainfont{times.ttf}
+% auto calculate bold of times new roman
+
+% \usepackage{mathptmx}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -62,7 +64,7 @@ We began by reproducing this strategy on high-resolution ($1024\times1024$) imag
 
 This led us to a different diagnosis. The difficulty is not that the optimizer is weak; it is that \emph{the search space handed to the optimizer is bad}. All domain-matching metaheuristics search blindly over the full pool, spending most of their budget on structurally dissimilar blocks that can never produce a good match. Classical FIC acceleration recognized a version of this---Fisher's block classification~\cite{compression1995fractal} and Saupe's reformulation of block matching as nearest-neighbor search in feature space~\cite{saupe1995accelerating}---but these ideas predate, and were never reconciled with, the metaheuristic FIC literature for high-resolution images.
 
-Our central decision is therefore to \textbf{move the heuristic from block \emph{matching} to block \emph{selection}}. Instead of optimizing which domain matches each range block, we use a fast, structure-aware heuristic to \emph{select} a small, \mbox{high-quality} candidate pool of domains per range block, and then search that pool to optimality. We call this \textbf{Feature-Guided Domain Selection (FGDS)}. Concretely, FGDS (i) computes an 8-dimensional isometry-invariant descriptor for every block, (ii) uses a KD-Tree to retrieve the $K$ nearest domains for each range block in a learned weighted feature space, and (iii) exhaustively evaluates the $K\!\times\!8$ candidates in that pool.
+Our central decision is therefore to \textbf{move the heuristic from block \emph{matching} to block \emph{selection}}. Instead of optimizing which domain matches each range block, we use a fast, structure-aware heuristic to \emph{select} a small, high-quality candidate pool of domains per range block, and then search that pool to optimality. We call this \textbf{Feature-Guided Domain Selection (FGDS)}. Concretely, FGDS (i) computes an 8-dimensional isometry-invariant descriptor for every block, (ii) uses a KD-Tree to retrieve the $K$ nearest domains for each range block in a learned weighted feature space, and (iii) exhaustively evaluates the $K\!\times\!8$ candidates in that pool.
 
 This paper presents the full reasoning trail that produced FGDS, because each step is itself a result. We show experimentally that (a) memetic local search helps PSO but costs time; (b) restricting PSO to a feature-guided pool helps more; (c) once the pool is small, \emph{exhaustive search beats PSO inside it}, so the optimizer can be dropped; (d) the expensive part that remains---pairwise candidate selection---can be replaced by a KD-Tree at no quality cost; (e) a candidate pool of $K\!=\!80$ is a sweet spot; (f) a Genetic Algorithm can learn, offline and once, how important each feature dimension is, and these weights transfer across images; and (g) a same-size \emph{random} pool is far worse than the feature-guided pool, proving that the gain comes from the selection, not from search-space reduction alone.
 
@@ -71,7 +73,7 @@ The contributions are:
     \item \textbf{A reframing of metaheuristics in FIC} from per-block domain matching to domain-block \emph{selection}, supported by an ablation showing that exhaustive search dominates PSO inside a feature-guided pool.
     \item \textbf{FGDS}, an 8-dimensional isometry-invariant descriptor plus KD-Tree nearest-neighbor selection, which cuts candidate-pool construction from $\sim$180\,s to under 0.5\,s ($\sim$1390$\times$) and reduces the per-range search space by over $6\times10^3$.
     \item \textbf{A GA-based feature-weight learner} that discovers, offline on a single held-out image, the relative importance of each feature dimension and transfers it to unseen images, motivated by the structure of the FIC affine model.
-    \item \textbf{A controlled study on ten high-resolution images}, including a random-pool control and a \mbox{$K$-sensitivity} sweep, with Wilcoxon signed-rank significance ($n=10$), establishing that the feature-guided pool---not the inner optimizer---is the source of \mbox{the improvement}.
+    \item \textbf{A controlled study on ten high-resolution images}, including a random-pool control and a $K$-sensitivity sweep, with Wilcoxon signed-rank significance ($n=10$), establishing that the feature-guided pool---not the inner optimizer---is the source of the improvement.
 \end{enumerate}
 
 
@@ -190,7 +192,7 @@ The descriptor must (R1) discriminate structurally dissimilar blocks and (R2) be
 \end{equation}
 Here $\mu$ and $\sigma$ are the block mean and standard deviation (both exactly isometry-invariant). $\bar g_h=\mathrm{mean}|b(i,j\!+\!1)\!-\!b(i,j)|$ and $\bar g_v=\mathrm{mean}|b(i\!+\!1,j)\!-\!b(i,j)|$ are mean gradient magnitudes capturing texture; they are invariant under flips and merely swap under $90^\circ$ rotation (quasi-invariant). The $\hat q_1\!\le\!\dots\!\le\!\hat q_4$ are the four quadrant means \emph{sorted ascending}: rotations and reflections only permute quadrants, so sorting makes them fully isometry-invariant. Each feature costs $O(L^2)$.
 
-Features are $z$-score normalized with domain-pool statistics, $\hat{\mathbf f}=(\mathbf f-\boldsymbol\mu_D)/(\boldsymbol\sigma_D+10^{-8})$, so every dimension contributes comparably to Euclidean distance \mbox{before weighting}.
+Features are $z$-score normalized with domain-pool statistics, $\hat{\mathbf f}=(\mathbf f-\boldsymbol\mu_D)/(\boldsymbol\sigma_D+10^{-8})$, so every dimension contributes comparably to Euclidean distance before weighting.
 
 \subsection{Stage 2: KD-Tree candidate selection}
 For range block $v_i$ we want the $K$ domains nearest in weighted feature space,
@@ -207,7 +209,7 @@ Within $\mathcal{P}_i$ we evaluate all $K\!\times\!8$ domain--isometry pairs via
 \subsection{Learning feature weights with a Genetic Algorithm}
 \label{sec:ga_weights}
 
-Equal weighting ($\mathbf w=\mathbf 1$) assumes all eight dimensions matter equally for pool quality, which is not true: the dimensions play different roles in the affine match of (\ref{eq:so}). We therefore learn $\mathbf w\in\mathbb{R}^8_{>0}$ with a Genetic Algorithm~\cite{holland1975adaptation} run \emph{once, offline}, on a single training image disjoint from the test set, and apply the result to all test images at zero extra encoding cost. This is a deliberately different use of a metaheuristic from the discarded PSO matcher: GA optimizes the \emph{design of the feature space}, not the per-block~search.
+Equal weighting ($\mathbf w=\mathbf 1$) assumes all eight dimensions matter equally for pool quality, which is not true: the dimensions play different roles in the affine match of (\ref{eq:so}). We therefore learn $\mathbf w\in\mathbb{R}^8_{>0}$ with a Genetic Algorithm~\cite{holland1975adaptation} run \emph{once, offline}, on a single training image disjoint from the test set, and apply the result to all test images at zero extra encoding cost. This is a deliberately different use of a metaheuristic from the discarded PSO matcher: GA optimizes the \emph{design of the feature space}, not the per-block search.
 
 \paragraph*{Fitness} An individual is a weight vector $\mathbf w$. To evaluate it we run weighted feature extraction $\to$ KD-Tree $\to$ exhaustive search on a random 2\% sample of range blocks ($\approx$1{,}300 blocks for $1024^2$) and return the average MSE; fitness is $-\mathrm{avg\,MSE}$. Raw features, domain statistics, and isometry tables are precomputed once, so each evaluation only re-weights, rebuilds the tree, and scans the sample.
 
@@ -421,7 +423,7 @@ A natural objection to FGDS is that any small exhaustive search might do well---
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{images/convergence_average_random.png}
-    \caption{E4 average convergence over ten images ($\pm1\sigma$ bands). At equal FFEs the feature-guided pool (red) dominates a same-size random pool (gray) by $\sim$3.25\,dB~throughout.}
+    \caption{E4 average convergence over ten images ($\pm1\sigma$ bands). At equal FFEs the feature-guided pool (red) dominates a same-size random pool (gray) by $\sim$3.25\,dB throughout.}
     \label{fig:conv_random}
 \end{figure}
 
@@ -460,7 +462,7 @@ With $n\!=\!10$ paired images and FGDS winning every pair, each test attains $W^
         \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}
         \caption{FGDS+GA}
     \end{subfigure}
-    \caption{Reconstruction on image 0030. (a) Original image. (b) Reconstructed image using FGDS+GA with $K = 80$ (32.73~dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients at CR $\approx3.7{:}1$.}
+    \caption{Reconstruction on image 0030. (a) Original image. (b) Reconstructed image using FGDS+GA with $K = 80$ (32.73 dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients at CR $\approx3.7{:}1$.}
     \label{fig:visual}
 \end{figure}
 
