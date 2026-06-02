@@ -421,7 +421,7 @@ A natural objection to FGDS is that any small exhaustive search might do well---
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{images/convergence_average_random.png}
-    \caption{E4 average convergence over ten images ($\pm1\sigma$ bands). At equal FFEs the feature-guided pool (red) dominates a same-size random pool (gray) by $\sim$3.25\,dB throughout.}
+    \caption{E4 average convergence over ten images ($\pm1\sigma$ bands). At equal FFEs the feature-guided pool (red) dominates a same-size random pool (gray) by $\sim$3.25\,dB~throughout.}
     \label{fig:conv_random}
 \end{figure}
 
@@ -447,7 +447,6 @@ FGDS-80 vs.\ Random-80   & +3.25 & 55 & $<0.01$ \\
 With $n\!=\!10$ paired images and FGDS winning every pair, each test attains $W^+\!=\!55$, $W^-\!=\!0$, and exact one-sided $p=1/2^{10}\approx 0.001$ (Table~\ref{tab:wilcoxon}). Every claim in the paper---superiority over each PSO variant, the positive GA gain, and the advantage over a random pool---is statistically significant.
 
 \subsection{Visual quality}
-
 \begin{figure}[t]
     \centering
     \begin{subfigure}{0.48\columnwidth}
@@ -459,9 +458,9 @@ With $n\!=\!10$ paired images and FGDS winning every pair, each test attains $W^
     \begin{subfigure}{0.48\columnwidth}
         \centering
         \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}
-        \caption{FGDS+GA ($K\!=\!80$), 32.73\,dB}
+        \caption{FGDS+GA}
     \end{subfigure}
-    \caption{Reconstruction on image 0030. FGDS preserves ridge structure, snow boundaries, and cloud gradients at CR $\approx3.7{:}1$.}
+    \caption{Reconstruction on image 0030. (a) Original image. (b) Reconstructed image using FGDS+GA with $K = 80$ (32.73~dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients at CR $\approx3.7{:}1$.}
     \label{fig:visual}
 \end{figure}
 
