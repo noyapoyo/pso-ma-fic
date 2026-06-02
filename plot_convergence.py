@@ -154,7 +154,7 @@ def plot_single(data, title="Convergence Curve", output_path=None):
 
     ax.set_xlabel('FFE (Fitness Function Evaluations per block)', fontsize=11)
     ax.set_ylabel('PSNR (dB)', fontsize=11)
-    ax.set_title(title, fontsize=13)
+    # ax.set_title(title, fontsize=13)
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
@@ -193,7 +193,7 @@ def plot_averaged(averaged, title="Average Convergence Curve", output_path=None)
 
     ax.set_xlabel('FFE (Fitness Function Evaluations per block)', fontsize=11)
     ax.set_ylabel('PSNR (dB)', fontsize=11)
-    ax.set_title(title, fontsize=13)
+    # ax.set_title(title, fontsize=13)
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
