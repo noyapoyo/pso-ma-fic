@@ -126,11 +126,13 @@
 % ==========================================
 % Title info
 % ==========================================
-\title[FGDS for Fast FIC]{CSC0071 Meta-heuristics and Problem Solving \\ Feature-Guided Domain Selection for Fast Fractal\\ Image Compression of High-Resolution Images}
+\title[FGDS for Fast FIC]{\texorpdfstring{CSC0071 Meta-heuristics and Problem Solving \\ Feature-Guided Domain Selection for Fast Fractal\\ Image Compression of High-Resolution Images}{CSC0071 Meta-heuristics and Problem Solving: Feature-Guided Domain Selection for Fast Fractal Image Compression of High-Resolution Images}}
 \author[Wu, Lin, Ko]{
+  \texorpdfstring{
     \textmd{Course Instructor: Prof. Tsung-Che Chiang} \\
     \vspace{0.4cm}
-    \textmd{Students: Zhen-Rong Wu, Darrin Lin, Liang-Yun Ko}}
+    \textmd{Students: Zhen-Rong Wu, Darrin Lin, Liang-Yun Ko}
+  }{Course Instructor: Prof. Tsung-Che Chiang; Students: Zhen-Rong Wu, Darrin Lin, Liang-Yun Ko}}
 \institute[NTNU]{
   Department of Computer Science and Information Engineering \\
   National Taiwan Normal University
@@ -147,741 +149,529 @@
 \end{frame}
 
 % ---- Outline ----
-\section{Outline}
-\begin{frame}{Outline}
-  \begin{enumerate}
-    \item \textbf{Background}: what is Fractal Image Compression (FIC), and why is it slow?
-    \item \textbf{Motivation}: prior work uses PSO --- but it breaks at high resolution
-    \item \textbf{The path to our method}: PSO $\to$ Memetic PSO $\to$ FG-PSO $\to$ the key ablation
-    \item \textbf{FGDS}: feature extraction, KD-Tree candidate selection, exhaustive search
-    \item \textbf{Genetic Algorithm}: learning which features matter
-    \item \textbf{Experiments}: four connected experiments and what they prove
-    \item \textbf{Conclusion} and contributions
-  \end{enumerate}
-
-  \vfill
-  \begin{block}{One-sentence summary}
-    We move the heuristic from \textbf{block matching} to \textbf{block selection}: instead of
-    using a metaheuristic to \emph{match} blocks, we use features to \emph{select} a small,
-    high-quality candidate pool, then search it exhaustively.
-  \end{block}
+\section{Roadmap}
+\begin{frame}{Presentation Roadmap}
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \begin{enumerate}
+        \item \textbf{Problem definition and goal} \hfill {\small 1--2 min}
+        \item \textbf{FIC encoding / decoding representation} \hfill {\small 1--2 min}
+        \item \textbf{Proposed solution flow} \hfill {\small 4--5 min}
+        \item \textbf{Experiments and results} \hfill {\small 2--3 min}
+        \item \textbf{Conclusion and future work} \hfill {\small 1 min}
+      \end{enumerate}
+    \end{column}
+    \begin{column}{0.44\textwidth}
+      \begin{block}{Take-away}
+        We move the heuristic from \textbf{block matching} to \textbf{block selection}.
+        Instead of using PSO to search the full domain pool, we use features to select
+        a small high-quality pool, then search it exhaustively.
+      \end{block}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 % ============================================================
-\section{Background: Fractal Image Compression}
+\section{Problem and Goal}
 % ============================================================
 
-\begin{frame}{What is Fractal Image Compression (FIC)?}
+\begin{frame}{Problem Definition and Research Goal}
   \begin{columns}[T]
-    \begin{column}{0.55\textwidth}
-      \textbf{Core idea: an image is similar to itself at different scales.}
-      \begin{itemize}
-        \item A small \alert{range block} often looks like a shrunk, rotated copy of a larger
-              region elsewhere in the image (a \alert{domain block}).
-        \item Instead of storing pixels, we store \emph{instructions}: ``this block $=$ that
-              region, shrunk, rotated, with contrast $s$ and brightness $o$.''
-        \item These instructions form a set of \emph{contractive affine maps} (an Iterated
-              Function System).
-      \end{itemize}
-      \vspace{0.2cm}
-      \begin{block}{Why it is attractive}
-        \begin{itemize}
-          \item High compression ratio.
-          \item \textbf{Resolution-independent} decoding: zoom in without blocking artifacts.
-        \end{itemize}
+    \begin{column}{0.52\textwidth}
+      \begin{block}{Fractal Image Compression (FIC)}
+        FIC represents an image by self-similar block mappings:
+        a small \alert{range block} is approximated by a transformed larger
+        \alert{domain block}.
       \end{block}
+      \begin{alertblock}{Encoding bottleneck}
+        For each range block, full search evaluates every domain block and all 8
+        isometries:
+        \[
+          M\times P\times 8
+          =65{,}536\times65{,}025\times8
+          \approx \mathbf{3.4\times10^{10}}
+        \]
+        candidate evaluations per $1024\times1024$ image.
+      \end{alertblock}
     \end{column}
-    \begin{column}{0.45\textwidth}
+    \begin{column}{0.48\textwidth}
       \centering
-      \begin{tikzpicture}[scale=0.95]
-        % big image grid
+      \begin{tikzpicture}[scale=0.9]
         \draw[step=0.4cm, gray!50, thin] (0,0) grid (3.2,3.2);
         \draw[very thick, black] (0,0) rectangle (3.2,3.2);
         \node[font=\scriptsize] at (1.6,3.45) {Image};
-        % a range block (small)
         \draw[very thick, accentblue, fill=accentblue!20] (0.4,2.4) rectangle (0.8,2.8);
         \node[accentblue, font=\tiny, right] at (0.85,2.6) {range $v$};
-        % a domain block (large)
         \draw[very thick, ntnured, fill=ntnured!10] (1.6,0.4) rectangle (2.4,1.2);
         \node[ntnured, font=\tiny, right] at (2.45,0.8) {domain $u$};
-        % arrow showing the map
         \draw[-{Stealth}, thick, accentgreen]
             (1.6,1.0) .. controls (1.0,2.0) .. (0.6,2.4);
         \node[accentgreen, font=\tiny] at (1.15,1.95) {shrink + rotate};
       \end{tikzpicture}
-      \vspace{0.3cm}
-      \[
-        \hat v = s\cdot T_k(\text{downsample}(u)) + o
-      \]
-      {\scriptsize $T_k$: one of 8 rotations/flips; $s$: contrast; $o$: brightness.}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Encoding vs.\ decoding: the asymmetry}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      \begin{block}{Decoding is \textcolor{accentgreen}{fast}}
-        Start from \emph{any} image, repeatedly apply the stored maps. By Banach's
-        fixed-point theorem it converges to a unique reconstruction in $\sim$20 iterations.
-      \end{block}
-      \begin{alertblock}{Encoding is \textcolor{ntnured}{slow}}
-        For \textbf{every} range block we must find the \textbf{best} domain block and isometry:
-        \[
-          \min_{u\in\mathcal D,\; k\in\{0..7\}} \text{MSE}\big(v,\; s\,T_k(u)+o\big)
-        \]
-        $s,o$ have a closed form; the hard part is the \emph{search} over $u$ and $k$.
-      \end{alertblock}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \textbf{The cost explodes with resolution.}
-      \begin{itemize}
-        \item For a $1024\times1024$ image with $4\times4$ range blocks:
-        \begin{itemize}
-          \item[] $M = 65{,}536$ range blocks
-          \item[] $P = 65{,}025$ domain blocks
-          \item[] $\times\, 8$ isometries
-        \end{itemize}
-        \item Full search $=$ $M\times P\times 8 \approx \mathbf{3.4\times 10^{10}}$
-              evaluations \emph{per image}.
-      \end{itemize}
       \vspace{0.2cm}
-      \begin{block}{The research question}
-        Can we keep the quality of full search while drastically cutting this cost?
-      \end{block}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{One ``fitness evaluation'' (FFE) --- the unit of cost}
-  \begin{columns}[T]
-    \begin{column}{0.58\textwidth}
-      For a fixed range block $v$, domain block $u$, and isometry $k$, the optimal contrast
-      and brightness have a \textbf{closed-form least-squares solution}:
-      \[
-        s = \frac{\text{Cov}(v,u_k)}{\text{Var}(u_k)}, \qquad o = \bar v - s\,\bar u_k,
-      \]
-      \[
-        \text{MSE} = \tfrac{1}{L^2}\textstyle\sum (v - s\,u_k - o)^2 .
-      \]
-      \begin{itemize}
-        \item One such computation $=$ one \alert{Fitness Function Evaluation (FFE)}.
-        \item \textbf{Every} method in this talk is measured in FFEs --- this makes the
-              comparison fair.
-        \item Contractivity $|s|<1$ is required for the decoder to converge.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.42\textwidth}
-      \begin{block}{Key observation we will exploit}
-        \begin{itemize}
-          \item A \textbf{mean} mismatch ($\bar v\!\neq\!\bar u$) is absorbed \emph{exactly}
-                by the offset $o$ --- it costs nothing.
-          \item A \textbf{contrast} mismatch ($\sigma_v\!\neq\!\sigma_u$) cannot be absorbed
-                --- it directly inflates the MSE.
-        \end{itemize}
-        $\Rightarrow$ Standard deviation matters far more than mean for choosing a good
-        domain. (We will let a GA discover this.)
-      \end{block}
+      \begin{exampleblock}{Goal}
+        Reduce FIC encoding time while preserving reconstruction quality
+        (PSNR), under a fair FFE budget.
+      \end{exampleblock}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================
-\section{Motivation: PSO and Why It Breaks}
+\section{Encoding and Decoding}
 % ============================================================
 
-\begin{frame}{Prior work: replace the search with a metaheuristic}
+\begin{frame}{Solution Representation: How FIC Encodes and Decodes}
   \begin{columns}[T]
-    \begin{column}{0.55\textwidth}
-      \textbf{The standard approach} (Muruganandham \& Wahida Banu, 2010):
-      treat $(d, k)$ --- domain index and isometry --- as the variables, and search
-      with \alert{Particle Swarm Optimization (PSO)}.
-      \begin{itemize}
-        \item Each particle $=$ a candidate $(d,k)$.
-        \item Particles fly through the search space, pulled toward their own best
-              and the swarm's global best.
-      \end{itemize}
-      \[
-        \mathbf V \leftarrow w\mathbf V + c_1 r_1(\mathbf P_{best}-\mathbf X)
-                                       + c_2 r_2(\mathbf G_{best}-\mathbf X)
-      \]
-      Genetic algorithms and pyramid-PSO have also been tried in the same spirit.
-    \end{column}
-    \begin{column}{0.45\textwidth}
-      \begin{alertblock}{The problem at high resolution}
+    \begin{column}{0.5\textwidth}
+      \begin{block}{One fractal code per range block}
+        \[
+          C_i=(d^*, k^*, s^*, o^*)
+        \]
         \begin{itemize}
-          \item One range block has $P\times 8 \approx \mathbf{5.2\times 10^5}$ candidates.
-          \item A swarm of 40 particles covers $<0.01\%$ of that at start.
-          \item The objective over domain indices is \emph{not smooth}: neighboring
-                domains can be totally different.
-          \item $\Rightarrow$ the swarm has no gradient to follow and gets stuck far from
-                the optimum.
+          \item $d^*$: selected domain block index
+          \item $k^*$: one of 8 rotations/flips
+          \item $s^*, o^*$: contrast and brightness
         \end{itemize}
+      \end{block}
+      \[
+        \hat v = s\cdot T_k(\text{downsample}(u_d)) + o
+      \]
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{block}{Fitness function evaluation (FFE)}
+        For a fixed $(d,k)$, $s$ and $o$ have a closed-form least-squares solution:
+        \[
+          s=\frac{\mathrm{Cov}(v,u_k)}{\mathrm{Var}(u_k)},\qquad
+          o=\bar v-s\bar u_k.
+        \]
+        One MSE computation for one $(d,k)$ pair is one \alert{FFE}.
+      \end{block}
+      \begin{exampleblock}{Decoding}
+        Start from any image and repeatedly apply all stored maps. Because maps are
+        contractive ($|s|<1$), the process converges to a reconstruction in about
+        20 iterations.
+      \end{exampleblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Stored Representation: Our \texttt{.fic} File}
+  \begin{columns}[T,totalwidth=\textwidth]
+    \begin{column}{0.53\textwidth}
+      \begin{block}{Binary file layout}
+        \centering
+        \begin{tikzpicture}[x=0.78cm,y=0.74cm]
+          \draw[fill=accentblue!12, draw=accentblue!70, thick]
+            (0,0) rectangle (2.2,0.9);
+          \node[font=\scriptsize] at (1.1,0.45) {Header};
+          \node[font=\tiny] at (1.1,0.16) {16 bytes};
+
+          \draw[fill=ntnured!10, draw=ntnured!70, thick]
+            (2.2,0) rectangle (8.2,0.9);
+          \node[font=\scriptsize] at (5.2,0.45) {Packed fractal codes};
+          \node[font=\tiny] at (5.2,0.16) {$65{,}536$ codes};
+
+          \draw[fill=gray!12, draw=gray!70, thick] (0,-1.25) rectangle (8.2,-0.35);
+          \draw[fill=accentblue!18, draw=accentblue!70] (0,-1.25) rectangle (3.28,-0.35);
+          \draw[fill=accentgreen!18, draw=accentgreen!70] (3.28,-1.25) rectangle (3.89,-0.35);
+          \draw[fill=ntnured!14, draw=ntnured!70] (3.89,-1.25) rectangle (5.53,-0.35);
+          \draw[fill=orange!18, draw=orange!70] (5.53,-1.25) rectangle (8.0,-0.35);
+          \node[font=\tiny] at (1.64,-0.82) {domain index};
+          \node[font=\tiny] at (1.64,-1.08) {16 bits};
+          \node[font=\tiny] at (3.58,-0.82) {$k$};
+          \node[font=\tiny] at (3.58,-1.08) {3};
+          \node[font=\tiny] at (4.71,-0.82) {$s$};
+          \node[font=\tiny] at (4.71,-1.08) {8};
+          \node[font=\tiny] at (6.76,-0.82) {$o$};
+          \node[font=\tiny] at (6.76,-1.08) {12};
+          \node[font=\scriptsize] at (4.1,-1.75) {one code = 39 bits};
+        \end{tikzpicture}
+      \end{block}
+      \begin{exampleblock}{Header fields}
+        \scriptsize
+        Magic \texttt{FIC1}, image height/width, range size, domain size,
+        domain stride, and quantization bits for $s$ and $o$.
+      \end{exampleblock}
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \begin{block}{Size calculation at $1024\times1024$}
+        \small
+        \[
+          M=(1024/4)^2=65{,}536
+        \]
+        \[
+          P=((1024-8)/4+1)^2=65{,}025
+        \]
+        \[
+          \lceil\log_2 P\rceil=16
+        \]
+        \[
+          65{,}536\times39/8 + 16
+          =319{,}504\text{ bytes}
+        \]
+      \end{block}
+      \begin{alertblock}{Space saving}
+        \centering
+        Original grayscale image: $1{,}048{,}576$ bytes\\
+        \vspace{0.08cm}
+        \texttt{.fic} file: $319{,}504$ bytes\\
+        \vspace{0.08cm}
+        \textbf{Compression ratio $\approx 3.28{:}1$}
       \end{alertblock}
-      \textbf{Our diagnosis:} the weakness is not the optimizer --- it is the
-      \textbf{quality of the search space} we hand it.
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================
-\section{The Path to Our Method}
+\section{Proposed Solution Flow}
 % ============================================================
 
-\begin{frame}{Our reasoning trail (each step is an experiment)}
-  \centering
-  \begin{tikzpicture}[node distance=0.45cm and 0.9cm]
-    \node[box] (pso) {\textbf{PSO}\\ search full pool};
-    \node[box, right=of pso] (mpso) {\textbf{Memetic PSO}\\ PSO $+$ local search};
-    \node[box, right=of mpso] (fgpso) {\textbf{FG-PSO}\\ PSO inside a\\ feature pool};
-    \node[greenbox, right=of fgpso] (fgds) {\textbf{FGDS}\\ exhaustive inside\\ the feature pool};
-
-    \draw[flow] (pso) -- (mpso);
-    \draw[flow] (mpso) -- (fgpso);
-    \draw[flow] (fgpso) -- (fgds);
-
-    \node[below=0.15cm of pso, font=\tiny, text width=2.2cm, align=center] {baseline};
-    \node[below=0.15cm of mpso, font=\tiny, text width=2.4cm, align=center, accentgreen]
-        {\textbf{+0.28 dB}\\ LS helps, costs time};
-    \node[below=0.15cm of fgpso, font=\tiny, text width=2.4cm, align=center, accentgreen]
-        {\textbf{+1.12 dB}\\ better space $\gg$ better tuning};
-    \node[below=0.15cm of fgds, font=\tiny, text width=2.6cm, align=center, ntnured]
-        {\textbf{+0.53 dB}, fewer FFEs\\ optimizer not needed!};
-  \end{tikzpicture}
-
-  \vspace{0.5cm}
-  \begin{columns}
-    \begin{column}{0.92\textwidth}
-      \begin{block}{The decisive insight}
-        Once the candidate pool is small (a few hundred), \textbf{exhaustive search beats PSO}
-        inside it --- it is exact, deterministic, and uses fewer evaluations. So we
-        \textbf{remove the metaheuristic matcher} and keep only the feature-guided
-        \emph{selection}. That selection becomes our contribution.
+\begin{frame}{Why PSO Alone Is Not Enough}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Prior idea}
+        Treat $(d,k)$ as the decision variables and search using PSO or GA.
       \end{block}
+      \begin{alertblock}{High-resolution issue}
+        One range block has
+        \[
+          P\times8 = 65{,}025\times8 = 520{,}200
+        \]
+        candidates. A 40-particle swarm samples only a tiny fraction, and the
+        domain-index objective is non-smooth.
+      \end{alertblock}
+    \end{column}
+    \begin{column}{0.52\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.86, transform shape, node distance=0.45cm and 0.7cm]
+        \node[box] (pso) {\textbf{PSO}\\ full pool};
+        \node[box, right=of pso] (mpso) {\textbf{Memetic PSO}\\ PSO + LS};
+        \node[box, right=of mpso] (fgpso) {\textbf{FG-PSO}\\ feature pool + PSO};
+        \node[greenbox, below=0.7cm of fgpso] (fgds) {\textbf{FGDS}\\ feature pool + exhaustive};
+        \draw[flow] (pso)--(mpso);
+        \draw[flow] (mpso)--(fgpso);
+        \draw[flow] (fgpso)--(fgds);
+      \end{tikzpicture}
+      \vspace{0.25cm}
+      \begin{exampleblock}{Key ablation}
+        Once the pool is small, \textbf{exhaustive search beats PSO inside it}.
+        Therefore the useful heuristic is not the inner optimizer, but the way we
+        construct the candidate pool.
+      \end{exampleblock}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{The three baselines, briefly}
-  \begin{block}{1. Standard PSO}
-    A swarm of 40 particles searches the full $(d,k)$ space. Cheap per step, but lost in a
-    huge space.
-  \end{block}
-  \begin{block}{2. Memetic PSO ($=$ PSO $+$ local search)}
-    Every few iterations, refine the best particles:
-    \begin{itemize}
-      \item \textbf{Isometry-LS}: try the other 7 isometries of the current domain.
-      \item \textbf{Spatial-LS}: try the 8 spatially adjacent domain blocks.
-    \end{itemize}
-    \emph{Lesson:} local search reliably raises PSNR --- but adds time.
-  \end{block}
-  \begin{block}{3. Feature-Guided PSO (FG-PSO)}
-    First build a small feature-based candidate pool (top-$K$ domains per range block), then
-    run Memetic PSO \emph{inside} that pool. \emph{Lesson:} shrinking the space to high-quality
-    candidates helps much more than tuning the optimizer.
-  \end{block}
-\end{frame}
-
-% ============================================================
-\section{Proposed Method: FGDS}
-% ============================================================
-
-\begin{frame}{FGDS pipeline: select first, then search}
+\begin{frame}{Our Method: Feature-Guided Domain Selection (FGDS)}
   \centering
   \begin{tikzpicture}[node distance=0.35cm and 0.55cm]
-    \node[bluebox] (img) {Image\\ block};
-    \node[bluebox, right=of img] (feat) {Feature\\ extraction\\ (8-dim)};
+    \node[bluebox] (img) {Image\\ blocks};
+    \node[bluebox, right=of img] (feat) {Feature\\ extraction\\ 8-D};
     \node[bluebox, right=of feat] (wfs) {Weighted\\ feature\\ space};
-    \node[box, right=of wfs] (kd) {KD-Tree\\ nearest\\ neighbours};
-    \node[box, right=of kd] (pool) {Candidate\\ pool\\ ($K$ domains)};
-    \node[greenbox, right=of pool] (exh) {Exhaustive\\ search\\ $K\times 8$};
-
+    \node[box, right=of wfs] (kd) {KD-Tree\\ KNN};
+    \node[box, right=of kd] (pool) {Candidate\\ pool};
+    \node[greenbox, right=of pool] (exh) {Exhaustive\\ search};
     \draw[flow] (img)--(feat);
     \draw[flow] (feat)--(wfs);
     \draw[flow] (wfs)--(kd);
     \draw[flow] (kd)--(pool);
     \draw[flow] (pool)--(exh);
-
-    \node[below=0.6cm of wfs, font=\scriptsize, accentorange, text width=3cm, align=center]
-        (ga) {GA-learned weights $\mathbf w$ (offline, once)};
+    \node[below=0.55cm of wfs, font=\scriptsize, accentorange, text width=3.2cm, align=center]
+        (ga) {GA learns feature weights\\ offline once};
     \draw[-{Stealth}, thick, accentorange, dashed] (ga) -- (wfs);
   \end{tikzpicture}
 
-  \vspace{0.4cm}
+  \vspace{0.35cm}
   \begin{columns}[T]
     \begin{column}{0.5\textwidth}
-      \begin{block}{Three online stages}
+      \begin{block}{Online encoding}
         \begin{enumerate}
-          \item Describe every block by 8 numbers.
-          \item Use a KD-Tree to find the $K$ most similar domains per range block.
-          \item Exhaustively try those $K\times 8$ candidates; keep the best.
+          \item Extract features for range/domain blocks.
+          \item Query KD-Tree for top-$K$ similar domains.
+          \item Try all $K\times8$ candidates and store the best code.
         \end{enumerate}
       \end{block}
     \end{column}
     \begin{column}{0.5\textwidth}
-      \begin{exampleblock}{Why this is fast \emph{and} good}
-        \begin{itemize}
-          \item Search space per block: $520{,}200 \to 640$ ($K{=}80$).
-          \item Exhaustive within the pool $\Rightarrow$ optimal, deterministic.
-          \item Selection is structure-aware $\Rightarrow$ the pool already contains good
-                matches.
-        \end{itemize}
+      \begin{exampleblock}{At $K=80$}
+        Per-range search space:
+        \[
+          520{,}200 \rightarrow 640
+        \]
+        over \textbf{800$\times$ fewer} candidates, yet exhaustive within the selected pool.
       \end{exampleblock}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Stage 1: an 8-dimensional isometry-invariant descriptor}
+\begin{frame}{Feature Extraction and Candidate Selection}
   \begin{columns}[T]
     \begin{column}{0.52\textwidth}
-      Each block $b$ ($L\times L$) becomes a vector:
+      \textbf{8-D isometry-invariant descriptor}
       \[
-        \mathbf f(b)=[\,\underbrace{\mu,\sigma}_{\text{intensity}},\;
-                       \underbrace{\bar g_h,\bar g_v}_{\text{texture}},\;
-                       \underbrace{\hat q_1,\hat q_2,\hat q_3,\hat q_4}_{\text{layout (sorted)}}\,]
+        f(b)=
+        [\mu,\sigma,\bar g_h,\bar g_v,\hat q_1,\hat q_2,\hat q_3,\hat q_4]
       \]
       \begin{itemize}
-        \item $\mu,\sigma$: mean \& standard deviation.
-        \item $\bar g_h,\bar g_v$: mean horizontal/vertical gradient magnitude (texture).
-        \item $\hat q_{1..4}$: the four quadrant means, \alert{sorted ascending}.
+        \item $\mu,\sigma$: intensity and contrast.
+        \item $\bar g_h,\bar g_v$: texture via gradient magnitudes.
+        \item $\hat q_{1..4}$: sorted quadrant means, invariant to rotations/flips.
       \end{itemize}
-      \begin{block}{Two requirements}
-        \textbf{Discriminative} (separates different blocks) \\
-        \textbf{Isometry-invariant}: a domain under any rotation/flip is the \emph{same}
-        candidate (the isometry is searched later, in Stage 3).
+      \begin{block}{Distance}
+        \[
+          \|\mathbf w\odot(\hat f_R-\hat f_D)\|^2
+        \]
+        Features are normalized; $\mathbf w$ is learned offline.
       \end{block}
     \end{column}
     \begin{column}{0.48\textwidth}
-      \centering
-      \textbf{Why sorting the quadrants gives invariance}
-      \vspace{0.2cm}
-
-      \begin{tikzpicture}[scale=0.8]
-        % original
-        \draw (0,0) rectangle (1.4,1.4);
-        \draw (0.7,0)--(0.7,1.4); \draw (0,0.7)--(1.4,0.7);
-        \node[font=\scriptsize] at (0.35,1.05){3}; \node[font=\scriptsize] at (1.05,1.05){7};
-        \node[font=\scriptsize] at (0.35,0.35){1}; \node[font=\scriptsize] at (1.05,0.35){5};
-        \node[font=\tiny, below] at (0.7,-0.1){original};
-        % rotated
-        \begin{scope}[xshift=2.6cm]
-          \draw (0,0) rectangle (1.4,1.4);
-          \draw (0.7,0)--(0.7,1.4); \draw (0,0.7)--(1.4,0.7);
-          \node[font=\scriptsize] at (0.35,1.05){1}; \node[font=\scriptsize] at (1.05,1.05){3};
-          \node[font=\scriptsize] at (0.35,0.35){5}; \node[font=\scriptsize] at (1.05,0.35){7};
-          \node[font=\tiny, below] at (0.7,-0.1){rotated 90$^\circ$};
-        \end{scope}
-      \end{tikzpicture}
-
-      \vspace{0.3cm}
-      Quadrant values are \emph{permuted} by rotation, but
-      \[
-        \text{sort}(3,7,1,5)=\text{sort}(1,3,5,7)=(1,3,5,7)
-      \]
-      \alert{same vector} $\Rightarrow$ fully invariant.
-      \vspace{0.2cm}
-
-      Features are $z$-score normalized so each dimension is comparable.
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{What is a KD-Tree?}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      A \alert{KD-Tree} is a binary tree that recursively splits points along alternating
-      coordinate axes. It answers ``\textbf{which points are nearest to this query?}'' in
-      $O(\log P)$ instead of $O(P)$.
-      \begin{itemize}
-        \item Split the data by the $x$-median, then each half by the $y$-median, and so on.
-        \item To find neighbours, descend to the query's leaf and prune branches that are
-              provably too far.
-        \item Efficient in low dimensions (our space is only 8-D; trouble starts above $\sim$20).
-      \end{itemize}
-      \begin{block}{In our project}
-        Points $=$ the 8-D feature vectors of all $P$ \textbf{domain} blocks.
-        Query $=$ a \textbf{range} block's feature vector.
-        Answer $=$ its $K$ nearest domains.
-      \end{block}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \centering
-      \begin{tikzpicture}[scale=1.0]
-        % 2D space with splits (illustrative, 2 of the 8 dims)
-        \draw[thick] (0,0) rectangle (3.6,3.0);
-        % first split vertical
-        \draw[accentblue, very thick] (1.6,0)--(1.6,3.0);
-        \node[accentblue, font=\tiny, above] at (1.6,3.0){split on $\sigma$};
-        % second splits horizontal
-        \draw[accentgreen, thick] (0,1.7)--(1.6,1.7);
-        \draw[accentgreen, thick] (1.6,1.2)--(3.6,1.2);
-        % points
-        \foreach \p in {(0.6,2.3),(1.0,0.9),(0.8,2.6),(1.2,1.0),
-                        (2.3,2.1),(3.0,0.6),(2.6,2.6),(2.9,1.9),(2.0,0.7)}
-          \fill[black] \p circle (1.6pt);
-        % query
-        \fill[ntnured] (2.5,2.3) circle (2.4pt);
-        \node[ntnured, font=\tiny, right] at (2.55,2.45){query (range)};
-        % nearest circle
-        \draw[ntnured, dashed] (2.5,2.3) circle (0.65cm);
-        \node[font=\tiny, below] at (1.8,-0.15){feature dims (2 of 8 shown)};
-      \end{tikzpicture}
-
-      \vspace{0.25cm}
-      {\scriptsize The dashed circle is the $K$-nearest region; the tree lets us find it
-      without scanning all points.}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{How we use the KD-Tree on domain features}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      \textbf{The matching distance is weighted Euclidean:}
-      \[
-        \mathcal P_i=\operatorname*{arg\,min}_{|S|=K}\sum_{j\in S}
-          \big\| \mathbf w \odot (\hat{\mathbf f}_{R,i}-\hat{\mathbf f}_{D,j})\big\|^2
-      \]
-      \textbf{Trick:} pre-multiply \emph{both} range and domain features by $\mathbf w$.
-      Then weighted distance $=$ plain Euclidean distance $\Rightarrow$ a standard KD-Tree
-      works directly.
-      \vspace{0.2cm}
-      \begin{enumerate}
-        \item Build one KD-Tree from all $P$ weighted domain features.
-        \item Batch-query all $M$ range features at once for their top-$K$.
-      \end{enumerate}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \begin{exampleblock}{The speedup that motivated this}
-        Pairwise (brute-force) pool construction:
+      \begin{exampleblock}{KD-Tree candidate selection}
+        Pairwise feature search:
         \[
-          O(M\cdot P\cdot F)\;\approx\; \mathbf{180\ s}
+          O(MPF)\approx179.6\text{ s}
         \]
-        KD-Tree pool construction:
+        KD-Tree:
         \[
-          O(P F\log P + M K\log P)\;<\;\mathbf{0.5\ s}
+          O(PF\log P+MK\log P)\approx0.13\text{ s}
         \]
-        \centering \alert{$\approx 1390\times$ faster, identical result.}
+        \centering \alert{about 1370$\times$ faster, same nearest neighbours.}
       \end{exampleblock}
-      \begin{block}{Important}
-        The KD-Tree returns the \textbf{same} neighbours as brute force --- so PSNR is
-        \emph{unchanged}. Only the time changes.
-      \end{block}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Stage 3: exhaustive search inside the pool}
-  \begin{columns}[T]
-    \begin{column}{0.55\textwidth}
-      For each range block, we now have only $K$ candidate domains. We try \textbf{all}
-      $K\times 8$ (domain, isometry) pairs and keep the one with minimum MSE
-      (subject to $|s|<1$).
-      \begin{itemize}
-        \item With $K=80$: $640$ FFEs per block.
-        \item This is \emph{fewer} than the budget given to the PSO baselines.
-        \item Yet it is \textbf{exact} within the pool and fully \textbf{deterministic} ---
-              no random restarts, no tuning.
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.45\textwidth}
-      \begin{block}{Why not PSO here?}
-        In a 640-candidate space, PSO would (a) round continuous positions to indices and
-        possibly skip candidates, and (b) need multiple runs for stability. A complete scan
-        is simply better --- this is the ablation that let us drop the optimizer.
-      \end{block}
-      \begin{alertblock}{Cost reduction vs.\ full search}
-        $3.4\times10^{10} \to 4.2\times10^{7}$ FFEs/image
-        ($>800\times$ fewer).
+      \begin{alertblock}{Why features matter}
+        A random pool with the same $K$ performs much worse; the quality comes from
+        feature-guided selection, not just from using a smaller pool.
       \end{alertblock}
     \end{column}
   \end{columns}
 \end{frame}
 
-% ============================================================
-\section{Genetic Algorithm: Learning Feature Weights}
-% ============================================================
-
-\begin{frame}{Why a Genetic Algorithm? (and where it sits)}
+\begin{frame}{What Is a KD-Tree?}
   \begin{columns}[T]
-    \begin{column}{0.55\textwidth}
-      Equal weighting assumes all 8 features matter equally. \textbf{They do not} ---
-      recall: a mean mismatch is free, a contrast mismatch is not.
-      \vspace{0.2cm}
-
-      So we \alert{learn} the weight vector $\mathbf w\in\mathbb R^8_{>0}$ that makes the
-      candidate pool as good as possible.
-      \begin{block}{A different use of a metaheuristic}
-        We \emph{removed} PSO from block matching. The GA is used one level \textbf{up}:
-        to \textbf{design the feature space}, not to match blocks.
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Idea}
+        A \alert{KD-Tree} stores multi-dimensional points by recursively splitting
+        the feature space.
         \begin{itemize}
-          \item Runs \textbf{once, offline}, on a single training image.
-          \item Costs \textbf{zero} at encoding time (just an element-wise multiply).
-          \item Learned weights are reused for all images.
+          \item Each node chooses one feature dimension and splits by a median value.
+          \item A query descends to nearby regions first.
+          \item Branches that cannot contain closer points are pruned.
         \end{itemize}
       \end{block}
-    \end{column}
-    \begin{column}{0.45\textwidth}
-      \begin{exampleblock}{What the GA optimizes}
-        \textbf{Individual} $=$ a weight vector $\mathbf w$ (8 genes).\\[2pt]
-        \textbf{Fitness} $=$ average MSE on a 2\% random sample of range blocks, after running
-        \emph{weighted features $\to$ KD-Tree $\to$ exhaustive search}.\\[2pt]
-        Lower MSE $=$ better. We maximize $-\text{MSE}$.
+      \begin{exampleblock}{In FGDS}
+        \begin{itemize}
+          \item Points: 8-D features of all domain blocks.
+          \item Query: 8-D feature of one range block.
+          \item Output: top-$K$ nearest candidate domains.
+        \end{itemize}
       \end{exampleblock}
-      \begin{block}{Setup}
-        Population 16, 10 generations, sample ratio 2\%, $K=80$, training image \texttt{0003}
-        (\textbf{not} in the test set).
-      \end{block}
+    \end{column}
+    \begin{column}{0.52\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.95]
+        \draw[thick] (0,0) rectangle (4.1,3.0);
+        \draw[accentblue, very thick] (1.75,0)--(1.75,3.0);
+        \node[accentblue, font=\tiny, above] at (1.75,3.0){split by $\sigma$};
+        \draw[accentgreen, thick] (0,1.75)--(1.75,1.75);
+        \draw[accentgreen, thick] (1.75,1.15)--(4.1,1.15);
+        \node[accentgreen, font=\tiny, right] at (4.05,1.15){split by $q_1$};
+        \foreach \p in {(0.55,2.35),(1.05,0.9),(0.85,2.65),(1.25,1.1),
+                        (2.35,2.1),(3.1,0.6),(2.65,2.55),(3.0,1.85),(2.05,0.75)}
+          \fill[black] \p circle (1.7pt);
+        \fill[ntnured] (2.55,2.25) circle (2.8pt);
+        \node[ntnured, font=\tiny, right] at (2.62,2.42){range query};
+        \draw[ntnured, dashed, thick] (2.55,2.25) circle (0.72cm);
+        \node[font=\scriptsize] at (2.05,-0.35){Only 2 of the 8 feature dimensions shown};
+      \end{tikzpicture}
+      \vspace{0.25cm}
+      \begin{alertblock}{Why this helps}
+        Instead of comparing one range block to all $65{,}025$ domains, the tree quickly
+        narrows the search to nearby feature regions.
+      \end{alertblock}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{GA workflow in our project}
-  \centering
-  \begin{tikzpicture}[node distance=0.4cm and 0.7cm]
-    \node[box] (init) {\textbf{Initialize}\\ 16 weight vectors\\ ($\mathbf w_0\!=\!\mathbf 1$, rest random)};
-    \node[bluebox, right=of init] (eval) {\textbf{Evaluate}\\ fitness $=-$MSE\\ on 2\% sample};
-    \node[box, right=of eval] (elite) {\textbf{Elitism}\\ keep best 2};
-    \node[greenbox, below=0.7cm of elite] (sel) {\textbf{Selection}\\ tournament (size 3)};
-    \node[greenbox, left=of sel] (cross) {\textbf{Crossover}\\ BLX-$\alpha$};
-    \node[greenbox, left=of cross] (mut) {\textbf{Mutation}\\ Gaussian};
-
-    \draw[flow] (init)--(eval);
-    \draw[flow] (eval)--(elite);
-    \draw[flow] (elite)--(sel);
-    \draw[flow] (sel)--(cross);
-    \draw[flow] (cross)--(mut);
-    \draw[flow] (mut) |- (eval) node[pos=0.25, below, font=\tiny]{next generation};
-  \end{tikzpicture}
-
-  \vspace{0.3cm}
+\begin{frame}{Genetic Algorithm: Learning Feature Weights}
   \begin{columns}[T]
-    \begin{column}{0.32\textwidth}
-      \begin{block}{Selection}
-        \scriptsize Pick 3 individuals at random; the one with best fitness becomes a parent.
-        Repeat for the second parent.
+    \begin{column}{0.5\textwidth}
+      \begin{block}{Why GA?}
+        Equal weights assume all features matter equally. But in the affine model,
+        mean mismatch is absorbed by $o$, while contrast mismatch affects $s$ and MSE.
       \end{block}
+      \begin{exampleblock}{GA setup}
+        \begin{itemize}
+          \item Individual: 8 feature weights.
+          \item Fitness: negative average MSE on 2\% sampled range blocks.
+          \item Population 16, 10 generations, $K=80$.
+          \item Training image: \texttt{0003}, not in the test set.
+        \end{itemize}
+      \end{exampleblock}
     \end{column}
-    \begin{column}{0.32\textwidth}
-      \begin{block}{Crossover (rate 0.8)}
-        \scriptsize BLX-$\alpha$ blends two parents per gene (next slide).
-      \end{block}
-    \end{column}
-    \begin{column}{0.32\textwidth}
-      \begin{block}{Mutation (rate 0.4)}
-        \scriptsize Perturb 1--3 genes by $\mathcal N(0,0.25)$; clamp to be positive.
-      \end{block}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{How we get a new solution: BLX-$\alpha$ crossover}
-  \begin{columns}[T]
-    \begin{column}{0.46\textwidth}
-      For each gene $d$, given parents $p_1,p_2$, let
-      $\text{lo}=\min(p_1,p_2)$, $\text{hi}=\max(p_1,p2)$, $I=\text{hi}-\text{lo}$.
-      The child gene is drawn \alert{uniformly} from
+    \begin{column}{0.5\textwidth}
+      \textbf{Learned weights}
       \[
-        \big[\,\text{lo}-\alpha I,\;\; \text{hi}+\alpha I\,\big],\quad \alpha=0.5 .
+        [0.18,\,1.36,\,0.97,\,0.96,\,1.29,\,1.04,\,1.00,\,0.75]
       \]
       \begin{itemize}
-        \item Children can lie \emph{between} parents \textbf{or slightly beyond} them
-              (the $\alpha I$ margin) --- this gives exploration.
-        \item Applied gene-by-gene, so each of the 8 weights is blended independently.
+        \item Smallest: mean $\mu=0.18$.
+        \item Largest: standard deviation $\sigma=1.36$.
+        \item Ratio $\sigma/\mu\approx7.6$.
       \end{itemize}
-      \begin{block}{Then mutation}
-        With prob.\ 0.4, add Gaussian noise to 1--3 random genes, then clamp $\ge 0.05$.
-        This is how a genuinely \textbf{new} weight vector appears.
+      \begin{alertblock}{Role of GA}
+        GA is \textbf{not} the main source of gain; it is a small but consistent refinement
+        (+0.05 dB average), positive on all 10 test images.
+      \end{alertblock}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{GA Crossover: How New Feature Weights Are Created}
+  \small
+  \begin{columns}[T,totalwidth=\textwidth]
+    \begin{column}{0.48\textwidth}
+      We use real-valued chromosomes:
+      \vspace{-0.1cm}
+      \[
+        \mathbf w=[w_\mu,w_\sigma,w_{g_h},w_{g_v},w_{q_1},...,w_{q_4}]
+      \]
+      \vspace{-0.18cm}
+      For crossover, we use \alert{BLX-$\alpha$}:
+      for each gene, given two parent values $p_1,p_2$,
+      \vspace{-0.08cm}
+      \[
+        I=|p_2-p_1|,
+      \]
+      \vspace{-0.28cm}
+      \[
+      \begin{aligned}
+        w_{\text{child}} &\sim U[L,H],\\
+        L &= \min(p_1,p_2)-\alpha I,\\
+        H &= \max(p_1,p_2)+\alpha I,\quad \alpha=0.5.
+      \end{aligned}
+      \]
+      \vspace{-0.18cm}
+      \begin{block}{After crossover}
+        With probability 0.4, mutate 1--3 genes by Gaussian noise, then clamp
+        weights to remain positive.
       \end{block}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.52\textwidth}
       \centering
-      \begin{tikzpicture}[scale=1.0]
-        % number line
-        \draw[->] (-0.3,0)--(6.3,0) node[right,font=\scriptsize]{weight value};
-        % parents
-        \fill[accentblue] (1.5,0) circle (2.5pt) node[above=2pt,font=\scriptsize,accentblue]{$p_1$};
-        \fill[ntnured]    (4.0,0) circle (2.5pt) node[above=2pt,font=\scriptsize,ntnured]{$p_2$};
-        % interval lo..hi
-        \draw[thick] (1.5,-0.15)--(1.5,0.15);
-        \draw[thick] (4.0,-0.15)--(4.0,0.15);
-        % extended interval
-        \draw[accentgreen, very thick] (0.25,-0.35)--(5.25,-0.35);
-        \draw[accentgreen] (0.25,-0.5)--(0.25,-0.2);
-        \draw[accentgreen] (5.25,-0.5)--(5.25,-0.2);
-        \node[accentgreen, font=\scriptsize, below] at (2.75,-0.7)
-            {sampling range $[\text{lo}-\alpha I,\ \text{hi}+\alpha I]$};
-        % I bracket
-        \draw[decorate, decoration={brace, amplitude=4pt}] (1.5,0.45)--(4.0,0.45);
-        \node[font=\scriptsize] at (2.75,0.75) {$I=\text{hi}-\text{lo}$};
-        % alpha I margins
-        \draw[decorate, decoration={brace, amplitude=3pt}] (0.25,-1.05)--(1.5,-1.05);
-        \node[font=\tiny] at (0.9,-1.3){$\alpha I$};
-        \draw[decorate, decoration={brace, amplitude=3pt}] (4.0,-1.05)--(5.25,-1.05);
-        \node[font=\tiny] at (4.6,-1.3){$\alpha I$};
-        % a sampled child
-        \fill[black] (3.1,0) circle (2.5pt) node[above=2pt,font=\scriptsize]{child};
+      \begin{tikzpicture}[scale=0.78, transform shape]
+        \draw[->] (-0.3,0)--(6.2,0) node[right,font=\scriptsize]{weight};
+        \fill[accentblue] (1.6,0) circle (2.8pt) node[above=2pt,font=\scriptsize,accentblue]{$p_1$};
+        \fill[ntnured] (4.1,0) circle (2.8pt) node[above=2pt,font=\scriptsize,ntnured]{$p_2$};
+        \draw[thick] (1.6,-0.12)--(1.6,0.12);
+        \draw[thick] (4.1,-0.12)--(4.1,0.12);
+        \draw[accentgreen, very thick] (0.35,-0.35)--(5.35,-0.35);
+        \draw[accentgreen] (0.35,-0.5)--(0.35,-0.2);
+        \draw[accentgreen] (5.35,-0.5)--(5.35,-0.2);
+        \draw[decorate, decoration={brace, amplitude=4pt}] (1.6,0.45)--(4.1,0.45);
+        \node[font=\scriptsize] at (2.85,0.78) {$I=|p_2-p_1|$};
+        \node[accentgreen, font=\scriptsize] at (2.85,-0.72)
+          {extended sampling interval};
+        \fill[black] (3.05,0) circle (2.8pt) node[below=4pt,font=\scriptsize]{child};
+        \draw[decorate, decoration={brace, amplitude=3pt}] (0.35,-1.05)--(1.6,-1.05);
+        \node[font=\tiny] at (0.98,-1.3){$\alpha I$};
+        \draw[decorate, decoration={brace, amplitude=3pt}] (4.1,-1.05)--(5.35,-1.05);
+        \node[font=\tiny] at (4.72,-1.3){$\alpha I$};
       \end{tikzpicture}
-
-      \vspace{0.3cm}
-      {\scriptsize One gene shown. The child is a random point in the green range; repeating
-      for all 8 genes produces one offspring weight vector.}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{What the GA learned (and why it generalizes)}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      Converged weights (train image \texttt{0003}, sampled MSE $72.82\!\to\!71.77$):
-      \vspace{0.15cm}
-
-      \begin{tikzpicture}[scale=1.0]
-        \def\barh{0.32}
-        \foreach \i/\name/\w [count=\y] in {
-          1/$\mu$ (mean)/0.18, 2/$\sigma$ (std)/1.36, 3/$\bar g_h$/0.97,
-          4/$\bar g_v$/0.96, 5/$\hat q_1$/1.29, 6/$\hat q_2$/1.04,
-          7/$\hat q_3$/1.00, 8/$\hat q_4$/0.75}{
-          \node[font=\scriptsize, left] at (0,-\y*0.42) {\name};
-          \fill[ntnured!70] (0.1,-\y*0.42-\barh/2) rectangle (0.1+\w*2.3,-\y*0.42+\barh/2);
-          \node[font=\tiny, right] at (0.1+\w*2.3,-\y*0.42) {\w};
-        }
-      \end{tikzpicture}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \begin{exampleblock}{The result matches theory exactly}
-        \begin{itemize}
-          \item \alert{$\mu$ smallest} (0.18): a mean mismatch is absorbed by offset $o$
-                --- so it should barely count.
-          \item \alert{$\sigma$ largest} (1.36): a contrast mismatch cannot be absorbed
-                --- so it should count most.
-          \item Ratio $\sigma/\mu \approx \mathbf{7.6\times}$.
-        \end{itemize}
+      \vspace{0.16cm}
+      \begin{exampleblock}{Why BLX-$\alpha$}
+        It samples between or slightly outside the parents, so GA can exploit good
+        weights while exploring new importance patterns.
       \end{exampleblock}
-      \begin{block}{Why one training image is enough}
-        ``$\sigma$ drives the multiplicative contrast, $\mu$ is free'' is a property of the
-        \textbf{affine model} (the formula for $s,o$), \emph{not} of any image. So the weights
-        transfer --- and indeed they improve PSNR on \textbf{all 10} unseen test images.
-      \end{block}
     \end{column}
   \end{columns}
 \end{frame}
 
 % ============================================================
-\section{Experiments}
+\section{Experiments and Results}
 % ============================================================
 
-\begin{frame}{Experimental setup and the four experiments}
+\begin{frame}{Experimental Setup and Benchmarks}
   \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      \begin{block}{Setup}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Benchmark problem instances}
         \begin{itemize}
-          \item 10 DIV2K images, $1024\times1024$, grayscale.
-          \item $L\!=\!4$, domain $8$, stride $4$; CR $\approx 3.7{:}1$.
-          \item FFE budget 800 per block (fair common axis).
-          \item PSO methods: 5 runs each; FGDS deterministic.
-          \item Significance: Wilcoxon signed-rank, $n\!=\!10$.
-          \item GA trained on \texttt{0003} (held out).
+          \item 10 DIV2K images: $1024\times1024$, grayscale.
+          \item Range size 4, domain size 8, stride 4.
+          \item Compression ratio fixed at $\approx3.28{:}1$.
+          \item Reconstruction quality: decoded-image PSNR.
+          \item Statistical test: Wilcoxon signed-rank, $n=10$.
         \end{itemize}
       \end{block}
     \end{column}
-    \begin{column}{0.5\textwidth}
-      \begin{exampleblock}{Four connected experiments}
+    \begin{column}{0.52\textwidth}
+      \begin{exampleblock}{Benchmark algorithms / ablations}
         \begin{description}
-          \item[E1] PSO / Memetic / FG-PSO / FGDS ($K{=}40$) --- shows the optimizer is
-                    unnecessary.
-          \item[E2] FGDS pairwise / KD-Tree / KD-Tree+GA ($K{=}80$) --- isolates the
-                    speedup and the GA gain.
-          \item[E3] $K\in\{5,..,160\}$ sweep --- finds the sweet spot.
-          \item[E4] feature pool vs.\ \emph{random} pool ($K{=}80$) --- proves the features
-                    matter.
+          \item[PSO] standard PSO over full domain pool.
+          \item[Memetic PSO] PSO + local search.
+          \item[FG-PSO] PSO inside a feature-guided pool.
+          \item[FGDS] feature-guided pool + exhaustive search.
+          \item[Pairwise/KDTree/GA] final pipeline analysis at $K=80$.
+          \item[Random-80] same-size random pool control.
         \end{description}
       \end{exampleblock}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{E1: the optimizer is not the bottleneck}
+\begin{frame}{Main Result: The Optimizer Can Be Removed}
   \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.46\textwidth}
       \centering
       \footnotesize
       \begin{tabular}{lrr}
         \toprule
-        \textbf{Method} & \textbf{PSNR (dB)} & \textbf{Time (s)} \\
+        \textbf{Method} & \textbf{PSNR} & \textbf{Time(s)} \\
         \midrule
-        PSO            & 28.87 & 1419.8 \\
-        Memetic PSO    & 29.15 & 1317.2 \\
-        FG-PSO ($K{=}40$) & 30.27 & 1268.8 \\
+        PSO              & 28.87 & 1419.8 \\
+        Memetic PSO      & 29.15 & 1317.2 \\
+        FG-PSO ($K=40$)  & 30.27 & 1268.8 \\
         \rowcolor{ntnured!12}
-        \textbf{FGDS ($K{=}40$)} & \textbf{30.80} & \textbf{358.0} \\
+        \textbf{FGDS ($K=40$)} & \textbf{30.80} & \textbf{358.0} \\
         \bottomrule
       \end{tabular}
-
-      \vspace{0.3cm}
-      \begin{block}{Read it as a trail}
+      \vspace{0.25cm}
+      \begin{block}{Interpretation}
         \scriptsize
-        LS helps (+0.28); feature pool helps more (+1.12);
-        dropping PSO for exhaustive helps again (+0.53) --- with
-        \textbf{$\sim$4$\times$ speedup} and no randomness.
+        Local search helps; feature-guided pools help more; exhaustive search inside the
+        pool beats PSO again. FGDS is deterministic and about 4$\times$ faster in the
+        reported search loop.
       \end{block}
     \end{column}
-    \begin{column}{0.52\textwidth}
+    \begin{column}{0.54\textwidth}
       \includegraphics[width=\linewidth]{images/convergence_average_exp1.png}
-
-      {\scriptsize Feature-guided methods start 2--3 dB higher; FGDS saturates at
-      $K\!\times\!8=320$ FFEs and stays on top.}
+      {\scriptsize FGDS saturates at $K\times8=320$ FFEs and remains above PSO variants.}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{E2: KD-Tree gives the same quality, far faster ($+$ GA)}
+\begin{frame}{Final Pipeline Analysis: KD-Tree, $K$, and Random Control}
   \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
+    \begin{column}{0.48\textwidth}
       \centering
       \footnotesize
-      \begin{tabular}{lrrr}
+      \textbf{FGDS variants at $K=80$}
+      \vspace{0.05cm}
+      \begin{tabular}{lrr}
         \toprule
-        \textbf{Variant} & \textbf{PSNR} & \textbf{CandSel(s)} & \textbf{MSE} \\
+        \textbf{Variant} & \textbf{PSNR} & \textbf{CandSel(s)} \\
         \midrule
-        Pairwise        & 31.21 & 179.57 & 56.27 \\
-        KD-Tree         & 31.21 & \textbf{0.13} & 56.27 \\
-        \rowcolor{accentgreen!12}
-        KD-Tree $+$ GA  & \textbf{31.26} & 0.12 & \textbf{55.60} \\
+        Pairwise      & 31.21 & 179.57 \\
+        KD-Tree       & 31.21 & \textbf{0.13} \\
+        KD-Tree + GA  & \textbf{31.26} & 0.12 \\
         \bottomrule
       \end{tabular}
-      \vspace{0.3cm}
-      \begin{exampleblock}{Two clean results}
-        \scriptsize
-        \begin{itemize}
-          \item KD-Tree $=$ pairwise in quality (identical neighbours), but candidate
-                selection drops $179.6\,\text{s}\to 0.13\,\text{s}$ ($\sim$1390$\times$).
-          \item GA weights add $+0.05$ dB on average, \textbf{positive on all 10 images},
-                at zero encoding cost.
-        \end{itemize}
-      \end{exampleblock}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \includegraphics[width=\linewidth]{images/convergence_0030.png}
+      \vspace{0.25cm}
 
-      {\scriptsize Image 0030: the three variants overlap almost perfectly (same neighbours);
-      GA is marginally on top.}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{E3: choosing the pool size $K$}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      \centering
-      \footnotesize
+      \textbf{$K$-sensitivity}
+      \vspace{0.05cm}
       \begin{tabular}{rrrr}
         \toprule
-        $K$ & \textbf{FFE} & \textbf{PSNR (dB)} & \textbf{Total (s)} \\
+        $K$ & FFE & PSNR & Total(s) \\
         \midrule
-        5   & 40   & 29.18 & 51.6 \\
-        10  & 80   & 29.80 & 95.7 \\
-        20  & 160  & 30.33 & 183.6 \\
         40  & 320  & 30.80 & 360.9 \\
         \rowcolor{ntnured!12}
         80  & 640  & 31.21 & 712.9 \\
@@ -889,89 +679,51 @@
         \bottomrule
       \end{tabular}
     \end{column}
-    \begin{column}{0.5\textwidth}
-      \begin{block}{Diminishing returns}
-        \begin{itemize}
-          \item PSNR climbs steadily up to $K=80$ (31.21 dB).
-          \item $K=80\to160$: only \textbf{+0.12 dB} for $\sim$1.24$\times$ the time.
-          \item $\Rightarrow$ the top-80 feature neighbours already contain essentially all
-                useful domains.
-        \end{itemize}
-      \end{block}
-      \begin{exampleblock}{Decision}
-        Adopt \alert{$K=80$} as the sweet spot (used in E2 and E4). Even $K=40$ already beats
-        every PSO baseline at a fraction of the time.
-      \end{exampleblock}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{E4: is it the features, or just a smaller pool?}
-  \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
-      \textbf{Control experiment.} Replace the feature-guided pool with a \alert{random}
-      pool of the \emph{same} size ($K=80$), same exhaustive search, same FFEs. Only the
-      \emph{selection} differs.
-      \vspace{0.2cm}
-      \begin{alertblock}{Result}
-        \begin{itemize}
-          \item FGDS-80: \textbf{31.21 dB} \quad vs.\quad Random-80: 27.96 dB
-          \item Gap $=$ \textbf{+3.25 dB}, FGDS wins on \textbf{all 10} images.
-        \end{itemize}
-      \end{alertblock}
-      A same-size random pool is far worse $\Rightarrow$ the quality comes from the
-      \textbf{feature-guided selection}, not from shrinking the space alone. \emph{This is the
-      core of our thesis.}
-    \end{column}
     \begin{column}{0.52\textwidth}
-      \includegraphics[width=\linewidth]{images/convergence_average_random.png}
-
-      {\scriptsize At equal FFEs the feature-guided pool (red) dominates the random pool
-      (gray) throughout by $\sim$3.25 dB.}
+      \includegraphics[width=0.93\linewidth]{images/convergence_average_random.png}
+      \begin{alertblock}{Random-pool control}
+        FGDS-80: \textbf{31.21 dB}; Random-80: 27.96 dB.
+        The +3.25 dB gap proves the feature-guided pool is valuable, not merely the
+        smaller exhaustive search.
+      \end{alertblock}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Statistical significance and a visual example}
+\begin{frame}{Visual Quality and Statistical Significance}
   \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
-      \centering
-      \footnotesize
-      \textbf{Wilcoxon signed-rank (PSNR, $n=10$)}
-      \vspace{0.1cm}
-      \begin{tabular}{lrr}
-        \toprule
-        \textbf{Comparison} & $\Delta$PSNR & $p$ \\
-        \midrule
-        FGDS vs.\ PSO         & $+1.93$ & $<0.01$ \\
-        FGDS vs.\ Memetic PSO & $+1.65$ & $<0.01$ \\
-        FGDS vs.\ FG-PSO      & $+0.53$ & $<0.01$ \\
-        FGDS$+$GA vs.\ FGDS   & $+0.05$ & $<0.01$ \\
-        FGDS-80 vs.\ Random-80& $+3.25$ & $<0.01$ \\
-        \bottomrule
-      \end{tabular}
-
-      \vspace{0.2cm}
-      {\scriptsize FGDS wins every paired image in every comparison
-      ($W^+\!=\!55$, exact $p=1/2^{10}\approx0.001$).}
-    \end{column}
-    \begin{column}{0.5\textwidth}
+    \begin{column}{0.46\textwidth}
       \centering
       \begin{columns}[T]
         \begin{column}{0.5\textwidth}
           \centering
           \includegraphics[width=\linewidth]{images/0030_original.png}\\
-          {\scriptsize Original (0030)}
+          {\scriptsize Original}
         \end{column}
         \begin{column}{0.5\textwidth}
           \centering
           \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}\\
-          {\scriptsize FGDS$+$GA, 32.73 dB}
+          {\scriptsize FGDS+GA, 32.73 dB}
         \end{column}
       \end{columns}
       \vspace{0.2cm}
-      {\scriptsize Ridges, snow boundaries, and sky gradients are preserved at
-      CR $\approx 3.7{:}1$.}
+      {\scriptsize Ridges, snow boundaries, and sky gradients are preserved.}
+    \end{column}
+    \begin{column}{0.54\textwidth}
+      \begin{block}{Wilcoxon signed-rank tests}
+        \footnotesize
+        All comparisons win on all 10 paired images:
+        \[
+          W^+=55,\quad p=1/2^{10}=0.00098<0.01.
+        \]
+      \end{block}
+      \begin{exampleblock}{Key averages}
+        \begin{itemize}
+          \item FGDS-40 vs PSO: $+1.93$ dB.
+          \item Final FGDS+GA-80 vs PSO: $+2.39$ dB.
+          \item FGDS-80 vs Random-80: $+3.25$ dB.
+        \end{itemize}
+      \end{exampleblock}
     \end{column}
   \end{columns}
 \end{frame}
@@ -980,25 +732,23 @@
 \section{Conclusion}
 % ============================================================
 
-\begin{frame}{Conclusion}
-  \begin{block}{What we showed}
+\begin{frame}{Conclusion and Future Work}
+  \begin{block}{Conclusion}
     \begin{itemize}
-      \item For high-resolution FIC, the bottleneck is the \textbf{search space}, not the
-            optimizer. A feature pool of 80 domains, searched exhaustively, beats PSO over
-            $5\times10^5$ candidates by $\sim$1.9 dB.
-      \item Once the pool is small, \textbf{exhaustive search dominates PSO} --- so we remove
-            the metaheuristic matcher entirely.
-      \item A \textbf{KD-Tree} builds the pool $\sim$1390$\times$ faster than pairwise, with
-            identical quality.
-      \item A \textbf{GA} learns, offline and once, how much each feature matters; the learned
-            weights ($\sigma\!\gg\!\mu$) follow from the affine model and transfer to all images.
+      \item For high-resolution FIC, the key bottleneck is \textbf{search-space quality},
+            not the inner optimizer.
+      \item Feature-guided candidate selection + exhaustive search outperforms PSO-based
+            matching and removes stochastic variance.
+      \item KD-Tree makes candidate selection practical: $179.6$ s $\to 0.13$ s.
+      \item GA-learned feature weights give a small but consistent improvement.
     \end{itemize}
   \end{block}
-  \begin{exampleblock}{Our contribution}
-    We move the heuristic from block \textbf{matching} to feature-guided block
-    \textbf{selection}. Result: \textbf{+1.7--3.2 dB} over PSO, \textbf{$\sim$4$\times$ faster},
-    all gains significant at $p<0.01$; a random-pool control attributes \textbf{+3.25 dB}
-    specifically to the feature-guided selection.
+  \begin{exampleblock}{Future work}
+    \begin{itemize}
+      \item Extend to color images and different bit-rate settings.
+      \item Adaptive $K$ based on local block complexity.
+      \item Replace hand-crafted descriptors with learned embeddings.
+    \end{itemize}
   \end{exampleblock}
 \end{frame}
 
@@ -1009,11 +759,10 @@
   {\large for Fast Fractal Image Compression}\\[0.6cm]
   Zhen-Rong Wu \quad Darrin Lin \quad Liang-Yun Ko\\[0.3cm]
   {\small National Taiwan Normal University}\\[0.6cm]
-  {\small Source code: \texttt{github.com/noyapoyo/pso-ma-fic}}\\[0.8cm]
   \begin{block}{Take-away}
     \centering
-    When a metaheuristic struggles on a combinatorial problem, apply it to the
-    \emph{design of the search space} --- not to the search itself.
+    When a metaheuristic struggles, apply it to the \emph{design of the search space},
+    not necessarily to the search itself.
   \end{block}
 \end{frame}
 
