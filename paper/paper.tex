@@ -115,9 +115,9 @@ Quality is reported as reconstruction Peak Signal-to-Noise Ratio (PSNR), compute
 \mbox{$\mathrm{PSNR}_{\text{enc}}=10\log_{10}(255^2/\mathrm{MSE}_{\text{enc}})$}
 would be the corresponding encoder-side value, but the main PSNR numbers use the decoded reconstruction.
 
-\paragraph*{Compression ratio} Each code stores a domain index, \mbox{$k^*$}, and quantized \mbox{$s,o$}, costing $b_{\text{code}}=\lceil\log_2 P\rceil + 3 + b_s + b_o$~bits. With \mbox{$N\!=\!1024$}, \mbox{$L\!=\!4$}, and \mbox{$\delta\!=\!4$}, the number of domain blocks is \mbox{$P=65{,}025$}, \mbox{$b_s\!=\!b_o\!=\!8$},~hence \mbox{$b_{\text{code}}=35$}~and a compression ratio
-$\mathrm{CR}=N^2\!\cdot\!8/(M\,b_{\text{code}})\approx 3.7{:}1$.
-Because all methods use identical partitioning and quantization, CR is the same throughout; the comparison is purely about achievable PSNR and time at a fixed CR.
+\paragraph*{Compression ratio} Each code stores a domain index, an isometry index \mbox{$k^*$}, and quantized \mbox{$s,o$}, costing $b_{\text{code}}=\lceil\log_2 P\rceil + 3 + b_s + b_o$~bits. With \mbox{$N\!=\!1024$}, \mbox{$L\!=\!4$}, and \mbox{$\delta\!=\!4$}, the number of domain blocks is \mbox{$P=65{,}025$}. The bitstream uses \mbox{$b_s\!=\!8$} for contrast and \mbox{$b_o\!=\!12$} for the additive brightness offset, since quantization error in \mbox{$o$} directly appears as a block-level intensity bias in \mbox{$\hat v=s u_k+o$}. Thus \mbox{$b_{\text{code}}=16+3+8+12=39$}~bits and
+$\mathrm{CR}=N^2\!\cdot\!8/(M\,b_{\text{code}})\approx 3.28{:}1$.
+The actual \texttt{.fic} representation additionally stores a 16-byte header; for \mbox{$M=65{,}536$} codes this is \mbox{$319{,}504$}~bytes, also \mbox{$\mathrm{CR}\approx3.28{:}1$}. Because all methods use identical partitioning and quantization, CR is the same throughout; the comparison is purely about achievable PSNR and time at a fixed CR.
 
 \subsection{Acceleration and metaheuristic FIC}
 
@@ -283,7 +283,7 @@ Experiments run on an AMD EPYC 7313P 16-core server with FreeBSD 15.0. All metho
 The dataset consists of ten images from DIV2K~\cite{div2k}---0002, 0007, 0029, 0030, 0032, 0037, 0043, 0049, 0051, 0060---each resized to \mbox{$1024\times1024$} and converted to 8-bit grayscale. The GA training image (0003) is \emph{not} in the test set, so all reported GA results are on unseen images.
 
 \subsubsection{FIC parameters}
-\mbox{$L\!=\!4$}, \mbox{$2L\!=\!8$}, \mbox{$\delta\!=\!4$}, giving \mbox{$M=65{,}536$} range and \mbox{$P\!=\!65{,}025$} domain blocks, \mbox{$\mathrm{CR}\approx3.7{:}1$}, decode 20~iterations.
+\mbox{$L\!=\!4$}, \mbox{$2L\!=\!8$}, \mbox{$\delta\!=\!4$}, giving \mbox{$M=65{,}536$} range and \mbox{$P\!=\!65{,}025$} domain blocks. The stored code uses \mbox{$b_s=8$} and \mbox{$b_o=12$}, giving \mbox{$b_{\text{code}}=39$} bits and \mbox{$\mathrm{CR}\approx3.28{:}1$}; decoding uses 20~iterations.
 
 \subsubsection{Budget and protocol}
 The FFE budget is fixed at 800~per range block. This is generous for FGDS---at \mbox{$K\!=\!80$} it finishes in \mbox{$K\!\times\!8\!=\!640$}~FFEs and is flat thereafter---and is chosen so the convergence plots show, on a common axis, exactly when each method saturates. Stochastic methods (PSO, memetic PSO, FG-PSO) run 5~times per image with seeds \mbox{$\{42,\dots,46\}$}; FGDS is deterministic. Pairwise comparisons use the Wilcoxon signed-rank test~\cite{wilcoxon1945individual} over the \mbox{$n\!=\!10$}~images.
@@ -473,11 +473,11 @@ With \mbox{$n\!=\!10$} paired images and FGDS winning every pair, each test atta
         \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}
         \caption{FGDS+GA}
     \end{subfigure}
-    \caption{Reconstruction on image~0030. (a)~Original image. (b)~Reconstructed image using FGDS+GA with \mbox{$K = 80$} (32.73~dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients at \mbox{$\mathrm{CR}\approx3.7{:}1$}.}
+    \caption{Reconstruction on image~0030. (a)~Original image. (b)~Reconstructed image using FGDS+GA with \mbox{$K = 80$} (32.73~dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients at \mbox{$\mathrm{CR}\approx3.28{:}1$}.}
     \label{fig:visual}
 \end{figure}
 
-Figure~\ref{fig:visual} shows a representative reconstruction. At \mbox{$\mathrm{CR}\approx3.7{:}1$} FGDS preserves the dominant structure---mountain ridges, snow boundaries, and smooth sky gradients---consistent with its 32.73~dB PSNR on this~image.
+Figure~\ref{fig:visual} shows a representative reconstruction. At \mbox{$\mathrm{CR}\approx3.28{:}1$} FGDS preserves the dominant structure---mountain ridges, snow boundaries, and smooth sky gradients---consistent with its 32.73~dB PSNR on this~image.
 
 
 %% ================================================================
