@@ -266,15 +266,16 @@ def save_codes_and_stats(output_dir, image_name, method_name, stats, fractal_cod
         json.dump(codes_serializable, f)
 
 
-def estimate_compression_ratio(image_shape, n_range, n_domain):
+def estimate_compression_ratio(image_shape, n_range, n_domain,
+                               bits_s=8, bits_o=12):
     """
     估算壓縮比。每個 fractal code 編碼成本：
       domain_idx: ceil(log2(n_domain)) bits
       isometry:   3 bits (8 種)
       contrast s: 8 bits (量化)
-      brightness o: 8 bits (量化)
+      brightness o: 12 bits (量化, matches .fic bitstream)
     """
-    bits_per_code = int(np.ceil(np.log2(n_domain))) + 3 + 8 + 8
+    bits_per_code = int(np.ceil(np.log2(n_domain))) + 3 + bits_s + bits_o
     total_code_bits = n_range * bits_per_code
     original_bits = image_shape[0] * image_shape[1] * 8
     return original_bits / total_code_bits, bits_per_code
