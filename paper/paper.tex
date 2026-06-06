@@ -46,15 +46,15 @@
 \maketitle
 
 \begin{abstract}
-Fractal Image Compression (FIC) achieves resolution-independent decoding but suffers from prohibitive encoder complexity at high resolutions due to exhaustive domain pool searches. While metaheuristics like Particle Swarm Optimization (PSO) are widely used to accelerate this search, this paper demonstrates that on $1024\times1024$ images, PSO suffers from a structural flaw: a small swarm covers a vanishing fraction of the massive candidate space, causing premature convergence. Controlled experiments reveal that the bottleneck is the quality of the search space rather than the optimizer itself. 
+Fractal Image Compression (FIC) offers fast, resolution-independent decoding, but its encoder becomes prohibitively expensive at high resolutions because each range block must search a large domain pool. Although metaheuristics such as Particle Swarm Optimization (PSO) are often used to reduce this cost, our experiments on \mbox{$1024\times1024$} images show that the main bottleneck is not the PSO update rule itself, but the quality of the candidate space being searched. A small swarm samples only a vanishing fraction of the domain--isometry space and tends to converge before it reaches structurally suitable domains.
 
-To address this, Feature-Guided Domain Selection (FGDS) is proposed, which shifts the heuristic from per-block optimization to domain-block selection. Every block is mapped into an 8-dimensional isometry-invariant feature space. A KD-Tree retrieves the $K=80$ most similar domains per range block, allowing a small, optimal exhaustive search that completely eliminates the need for PSO. A Genetic Algorithm, trained once on a single held-out image, optimizes feature weights for robust generalization. 
+To address this, we propose Feature-Guided Domain Selection (FGDS), which shifts the heuristic from per-block optimization to domain-block selection. Each block is mapped to an 8-dimensional feature descriptor designed to be robust to geometric isometries. A KD-Tree retrieves the \mbox{$K=80$} most similar domains per range block, allowing a small exhaustive search that eliminates the need for an inner PSO. A Genetic Algorithm, trained once on a single held-out image, learns feature weights that transfer to unseen test images.
 
-Utilizing a KD-Tree cuts pool construction from 179.6~s to 0.13~s (about a 1370-fold speedup). The development ablation at \mbox{$K\!=\!40$} shows that exhaustive search inside the feature-guided pool improves PSNR by 1.26--3.22~dB over PSO while reducing reported search time by about 4 times. The final \mbox{$K\!=\!80$} KD-Tree+GA setting improves PSNR by 1.66--3.85~dB over PSO and remains about 2 times faster. All improvements are statistically significant under the Wilcoxon signed-rank test ($p < 0.01$, $n = 10$). Finally, a random-pool control isolates a +3.25~dB gain, confirming that the improvement stems directly from feature-guided selection rather than mere search-space reduction.
+Using a KD-Tree cuts pool construction from 179.6~s to 0.13~s (about a 1370-fold speedup). The development ablation at \mbox{$K\!=\!40$} shows that exhaustive search inside the feature-guided pool improves PSNR by 1.26--3.22~dB over PSO while reducing the reported search-loop time by about 4 times. The final \mbox{$K\!=\!80$} KD-Tree+GA setting improves PSNR by 1.66--3.85~dB over PSO and remains about 2 times faster when preprocessing is included. All improvements are statistically significant under the Wilcoxon signed-rank test ($p < 0.01$, $n = 10$). Finally, a random-pool control isolates a +3.25~dB gain, confirming that the improvement stems from feature-guided selection rather than from search-space reduction alone.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Fractal image compression, feature-guided search, domain block selection, KD-Tree, genetic algorithm, isometry-invariant features, metaheuristics
+Fractal image compression, feature-guided search, domain block selection, KD-Tree, genetic algorithm, robust block features, metaheuristics
 \end{IEEEkeywords}
 
 %% ================================================================
@@ -65,18 +65,18 @@ Fractal Image Compression (FIC) encodes an image as a set of contractive affine 
 
 A long-standing line of work replaces the exhaustive search with metaheuristics. Muruganandham and Wahida Banu~\cite{PSOFIC} applied Particle Swarm Optimization (PSO) to reduce encoding time, and genetic algorithms~\cite{wu2007schema, wu2006spatial, mitra1998technique} and more recent swarm variants~\cite{li2022pyramid} have been explored in the same spirit. These methods treat the domain index and isometry of each range block as the variables to be optimized, and search that space with a population of candidate solutions.
 
-The investigation initiated with replicating this strategy on high-resolution (\mbox{$1024\times1024$})~images, which quickly revealed significant performance limitations. At this scale a single range block has \mbox{$P\!\times\!8 \approx 5.2\times10^5$}~domain--isometry candidates. A PSO swarm of 40~particles therefore inspects well under \mbox{$0.1\%$} of the space at initialization, and because the FIC objective over domain indices is highly non-smooth---spatially adjacent domains can have completely different content---the swarm has no usable gradient to follow and converges to solutions far from the optimum. Adding memetic local search~\cite{moscato1989evolution} improves quality but cannot repair this: if the swarm settles in the wrong region of the pool, refining its neighborhood does not help.
+We began by replicating this strategy on high-resolution (\mbox{$1024\times1024$})~images, where its limitations become clear. At this scale a single range block has \mbox{$P\!\times\!8 \approx 5.2\times10^5$}~domain--isometry candidates. A PSO swarm of 40~particles therefore inspects well under \mbox{$0.1\%$} of the space at initialization, and because the FIC objective over domain indices is highly non-smooth---spatially adjacent domains can have completely different content---the swarm has no reliable direction to follow and often converges to solutions far from the optimum. Adding memetic local search~\cite{moscato1989evolution} improves quality but cannot fully repair this: if the swarm settles in the wrong region of the pool, refining its neighborhood has limited value.
 
 These findings suggest a different diagnosis. The difficulty is not that the optimizer is weak; it is that \emph{the search space handed to the optimizer is bad}. All domain-matching metaheuristics search indiscriminately over the full pool, spending most of their budget on structurally dissimilar blocks that can never produce a good match. Classical FIC acceleration recognized a version of this---Fisher's block classification~\cite{compression1995fractal} and Saupe's reformulation of block matching as nearest-neighbor search in feature space~\cite{saupe1995accelerating}---but these ideas predate, and were never reconciled with, the metaheuristic FIC literature for high-resolution images.
 
-The key design decision in this work is therefore to \textbf{move the heuristic from block \emph{matching} to block \emph{selection}}. Instead of optimizing which domain matches each range block, a fast, structure-aware heuristic is used to \emph{select} a small, high-quality candidate pool of domains per range block, which is then searched to optimality. This method is referred to as \textbf{Feature-Guided Domain Selection (FGDS)}. Concretely, FGDS (i)~computes an 8-dimensional isometry-invariant descriptor for every block, (ii)~uses a KD-Tree to retrieve the \mbox{$K$}~nearest domains for each range block in a learned weighted feature space, and (iii)~exhaustively evaluates the \mbox{$K\!\times\!8$}~candidates in that pool.
+The key design decision in this work is therefore to \textbf{move the heuristic from block \emph{matching} to block \emph{selection}}. Instead of optimizing which domain matches each range block, a fast, structure-aware heuristic is used to \emph{select} a small, high-quality candidate pool of domains per range block, which is then searched to optimality. This method is referred to as \textbf{Feature-Guided Domain Selection (FGDS)}. Concretely, FGDS (i)~computes an 8-dimensional descriptor designed to be robust to the eight FIC isometries, (ii)~uses a KD-Tree to retrieve the \mbox{$K$}~nearest domains for each range block in a learned weighted feature space, and (iii)~exhaustively evaluates the \mbox{$K\!\times\!8$}~candidates in that pool.
 
-This paper presents the full development process of FGDS, where each step represents an incremental result. Controlled experiments demonstrate that (a)~memetic local search helps PSO but costs time; (b)~restricting PSO to a feature-guided pool helps more; (c)~once the pool is small, \emph{exhaustive search outperforms PSO within it}, allowing the optimizer to be omitted; (d)~the remaining computationally intensive task---pairwise candidate selection---can be replaced by a KD-Tree at no quality cost; (e)~a candidate pool of \mbox{$K\!=\!80$} is an optimal parameter trade-off; (f)~a Genetic Algorithm can learn, offline and once, how important each feature dimension is, and these weights transfer across images; and (g)~a same-size \emph{random} pool is far worse than the feature-guided pool, proving that the gain comes from the selection, not from search-space reduction alone.
+This paper presents the full development process of FGDS, where each step contributes one piece of evidence. Controlled experiments demonstrate that (a)~memetic local search helps PSO but costs time; (b)~restricting PSO to a feature-guided pool helps more; (c)~once the pool is small, \emph{exhaustive search outperforms PSO within it}, allowing the optimizer to be omitted; (d)~the remaining computationally intensive task---pairwise candidate selection---can be replaced by a KD-Tree at no quality cost; (e)~a candidate pool of \mbox{$K\!=\!80$} gives the best quality--time trade-off under the fixed FFE protocol; (f)~a Genetic Algorithm can learn, offline and once, how important each feature dimension is, and these weights transfer across images; and (g)~a same-size \emph{random} pool is far worse than the feature-guided pool, proving that the gain comes from the selection, not from search-space reduction alone.
 
 The main contributions of this paper are:
 \begin{enumerate}
     \item \textbf{A reframing of metaheuristics in FIC} from per-block domain matching to domain-block \emph{selection}, supported by an ablation showing that exhaustive search dominates PSO inside a feature-guided pool.
-    \item \textbf{FGDS}, an 8-dimensional isometry-invariant descriptor plus KD-Tree nearest-neighbor selection, which cuts candidate-pool construction from 179.6~s to 0.13~s (about a 1370-fold speedup) and reduces the per-range search space by a factor of over 800 at \mbox{$K\!=\!80$}.
+    \item \textbf{FGDS}, an 8-dimensional isometry-robust descriptor plus KD-Tree nearest-neighbor selection, which cuts candidate-pool construction from 179.6~s to 0.13~s (about a 1370-fold speedup) and reduces the per-range search space by a factor of over 800 at \mbox{$K\!=\!80$}.
     \item \textbf{A GA-based feature-weight learner} that discovers, offline on a single held-out image, the relative importance of each feature dimension and transfers it to unseen images, motivated by the structure of the FIC affine model.
     \item \textbf{A controlled study on ten~high-resolution~images}, including a random-pool control and a \mbox{$K$-sensitivity} sweep, with Wilcoxon signed-rank significance (\mbox{$n = 10$}), establishing that the feature-guided pool---not the inner optimizer---is the source of the improvement.
 \end{enumerate}
@@ -111,18 +111,13 @@ o = \frac{\sum v - s\sum u_k}{L^2},
 where \mbox{$u_k=T_k(\mathrm{downsample}(u))$}. The best isometry is
 \mbox{$k^*=\arg\min_k \mathrm{MSE}(v,\,s_k u_k+o_k)$}, and contractivity \mbox{$|s|<1$} is enforced for decode     convergence. One evaluation of (\ref{eq:mse})--(\ref{eq:so}) for a single \mbox{$(u,k)$} pair is defined as a \emph{Fitness Function Evaluation (FFE)}; it serves as the unit of search cost shared by all compared methods.
 
-Quality is reported as reconstruction Peak Signal-to-Noise Ratio (PSNR), computed between the original image and the image obtained after 20~decoding iterations. When encoder-side MSE is reported in the tables, it denotes the average block-matching MSE of the selected affine maps, i.e.,
+Quality is reported as reconstruction Peak Signal-to-Noise Ratio (PSNR), computed between the original image and the image obtained after 20~decoding iterations from the selected affine maps. This isolates the effect of the search strategy before coefficient quantization. When encoder-side MSE is reported in the tables, it denotes the average block-matching MSE of the selected affine maps, i.e.,
 \mbox{$\mathrm{PSNR}_{\text{enc}}=10\log_{10}(255^2/\mathrm{MSE}_{\text{enc}})$}
 would be the corresponding encoder-side value, but the main PSNR numbers use the decoded reconstruction.
 
-<<<<<<< HEAD
 \paragraph*{Compression ratio} Each code stores a domain index, an isometry index \mbox{$k^*$}, and quantized \mbox{$s,o$}, costing $b_{\text{code}}=\lceil\log_2 P\rceil + 3 + b_s + b_o$~bits. With \mbox{$N\!=\!1024$}, \mbox{$L\!=\!4$}, and \mbox{$\delta\!=\!4$}, the number of domain blocks is \mbox{$P=65{,}025$}. The bitstream uses \mbox{$b_s\!=\!8$} for contrast and \mbox{$b_o\!=\!12$} for the additive brightness offset, since quantization error in \mbox{$o$} directly appears as a block-level intensity bias in \mbox{$\hat v=s u_k+o$}. Thus \mbox{$b_{\text{code}}=16+3+8+12=39$}~bits and
 $\mathrm{CR}=N^2\!\cdot\!8/(M\,b_{\text{code}})\approx 3.28{:}1$.
-The actual \texttt{.fic} representation additionally stores a 16-byte header; for \mbox{$M=65{,}536$} codes this is \mbox{$319{,}504$}~bytes, also \mbox{$\mathrm{CR}\approx3.28{:}1$}. Because all methods use identical partitioning and quantization, CR is the same throughout; the comparison is purely about achievable PSNR and time at a fixed CR.
-=======
-\paragraph*{Compression ratio} Each code stores a domain index, \mbox{$k^*$}, and quantized \mbox{$s,o$}, costing $b_{\text{code}}=\lceil\log_2 P\rceil + 3 + b_s + b_o$~bits. With \mbox{$N\!=\!1024$}, \mbox{$L\!=\!4$}, and \mbox{$\delta\!=\!4$}, the number of domain blocks is \mbox{$P=65{,}025$}, \mbox{$b_s\!=\!8$}, and \mbox{$b_o\!=\!12$}. Hence \mbox{$b_{\text{code}}=39$}. Including the 16-byte \texttt{.fic} header, a \mbox{$1024\times1024$} grayscale image is stored in 319{,}504~bytes rather than 1{,}048{,}576~bytes, giving an actual file-level compression ratio of approximately \mbox{$3.28{:}1$}.
-Because all methods use identical partitioning and quantization, CR is the same throughout; the comparison is purely about achievable PSNR and time at a fixed CR.
->>>>>>> dd70416 (compression)
+The actual \texttt{.fic} representation additionally stores a 16-byte header; for \mbox{$M=65{,}536$} codes this is \mbox{$319{,}504$}~bytes, also \mbox{$\mathrm{CR}\approx3.28{:}1$}. Because all methods use identical partitioning and code fields, CR is the same throughout; the comparison is therefore about achievable reconstruction quality and time under a common representation.
 
 \subsection{Acceleration and metaheuristic FIC}
 
@@ -149,7 +144,7 @@ with \mbox{$N_p\!=\!40$}, \mbox{$w\!=\!0.9$}, \mbox{$c_1\!=\!c_2\!=\!2.0$}, velo
 Memetic PSO augments the swarm with periodic local search on the top 20\%~of particles. \textbf{Isometry-LS} tries the 7~alternative isometries of a particle's current domain (\mbox{$\le 7$}~FFEs); \textbf{Spatial-LS} tries the 8~spatially adjacent domain blocks with the same isometry (\mbox{$\le 8$}~FFEs), exploiting spatial self-similarity. A final pass refines the global best. All LS evaluations count against the FFE~budget. This represents the first finding in the development process: local search reliably raises PSNR but incurs additional computational cost (Section~\ref{sec:exp1}).
 
 \subsection{Feature-Guided PSO (FG-PSO)}
-This observation motivated restricting the search space of the PSO. FG-PSO first builds, for each range block, a feature-guided candidate pool of \mbox{$K$}~domains (Section~\ref{sec:proposed}), then runs the same memetic PSO inside the reduced subspace \mbox{$[0,K\!-\!1]\times[0,7]$}~rather than the full pool. Shrinking the space from approximately \mbox{$5\times10^5$} to \mbox{$K\!\times\!8$}~candidates lets a small swarm cover a meaningful fraction of it, and FG-PSO indeed outperforms both baseline PSO variants. This corresponds to the feature-guided PSO method proposed in prior work.
+This observation motivated restricting the search space of the PSO. FG-PSO first builds, for each range block, a feature-guided candidate pool of \mbox{$K$}~domains (Section~\ref{sec:proposed}), then runs the same memetic PSO inside the reduced subspace \mbox{$[0,K\!-\!1]\times[0,7]$}~rather than the full pool. Shrinking the space from approximately \mbox{$5\times10^5$} to \mbox{$K\!\times\!8$}~candidates lets a small swarm cover a meaningful fraction of it, and FG-PSO outperforms both baseline PSO variants. This stage is kept as a development baseline because it isolates the effect of feature-guided pool construction before the optimizer is removed.
 
 \subsection{The ablation that removed the optimizer}
 FG-PSO raised an important question: if the candidate pool is reduced to only \mbox{$K\!=\!40$}~domains (\mbox{$320$}~candidates), whether the metaheuristic search provides any benefit over a complete scan. Therefore, the inner PSO is replaced with a plain exhaustive scan of all \mbox{$K\!\times\!8$}~candidates---\emph{feature-guided exhaustive search}---which forms the basis of FGDS. As Section~\ref{sec:exp1} shows, this exhaustive variant matches or outperforms FG-PSO, achieving higher PSNR with fewer FFEs (\mbox{$320$}~vs.\ the 800~budget), zero stochastic variance, and shorter runtime. Within a search space of a few hundred candidates, exhaustive search is more effective, allowing the metaheuristic matcher to be discarded. The remaining value lies in candidate pool selection, which is the focus of the remainder of this paper.
@@ -194,13 +189,13 @@ An offline Genetic Algorithm (Section~\ref{sec:ga_weights}) learns the feature w
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Stage 1: Isometry-invariant features}
-The descriptor must (R1) discriminate structurally dissimilar blocks and (R2) be \emph{isometry-invariant}, since a domain under any of the eight Dihedral transforms is the same candidate (the isometry is searched separately in Stage~3). For a block \mbox{$b$} of size \mbox{$L\times L$}, the feature vector is defined as
+\subsection{Stage 1: Isometry-robust features}
+The descriptor must (R1) discriminate structurally dissimilar blocks and (R2) be robust to the eight Dihedral isometries, since a domain under any of these transforms is the same candidate and the isometry is searched separately in Stage~3. For a block \mbox{$b$} of size \mbox{$L\times L$}, the feature vector is defined as
 \begin{equation}
 \mathbf{f}(b)=\bigl[\mu,\ \sigma,\ \bar g_h,\ \bar g_v,\ \hat q_1,\ \hat q_2,\ \hat q_3,\ \hat q_4\bigr]\in\mathbb{R}^8.
 \label{eq:features}
 \end{equation}
-Here \mbox{$\mu$} and \mbox{$\sigma$} are the block mean and standard deviation (both exactly isometry-invariant). \mbox{$\bar g_h=\mathrm{mean}|b(i,j\!+\!1)\!-\!b(i,j)|$} and \mbox{$\bar g_v=\mathrm{mean}|b(i\!+\!1,j)\!-\!b(i,j)|$} are mean gradient magnitudes capturing texture; they are invariant under flips and merely swap under \mbox{$90^\circ$} rotation (quasi-invariant). The \mbox{$\hat q_1\!\le\!\dots\!\le\!\hat q_4$} are the four quadrant means \emph{sorted ascending}: rotations and reflections only permute quadrants, so sorting makes them fully isometry-invariant. Each feature costs \mbox{$O(L^2)$}.
+Here \mbox{$\mu$} and \mbox{$\sigma$} are the block mean and standard deviation, both exactly invariant to the eight isometries. \mbox{$\bar g_h=\mathrm{mean}|b(i,j\!+\!1)\!-\!b(i,j)|$} and \mbox{$\bar g_v=\mathrm{mean}|b(i\!+\!1,j)\!-\!b(i,j)|$} are mean gradient magnitudes capturing texture; they are invariant under horizontal and vertical flips and swap under \mbox{$90^\circ$} rotation, so they are treated as quasi-invariant directional texture cues rather than strict invariants. The \mbox{$\hat q_1\!\le\!\dots\!\le\!\hat q_4$} are the four quadrant means \emph{sorted ascending}: rotations and reflections only permute quadrants, so sorting makes them fully isometry-invariant. Each feature costs \mbox{$O(L^2)$}.
 
 Features are \mbox{$z$}-score normalized with domain-pool statistics, \mbox{$\hat{\mathbf f}=(\mathbf f-\boldsymbol\mu_D)/(\boldsymbol\sigma_D+10^{-8})$}, so every dimension contributes comparably to Euclidean distance before weighting.
 
@@ -256,7 +251,7 @@ for \mbox{$[\mu,\sigma,\bar g_h,\bar g_v,\hat q_1,\hat q_2,\hat q_3,\hat q_4]$}.
 \paragraph*{Why one training image generalizes}
 \label{sec:generalize}
 The weights capture structure of the FIC affine model rather than image content, so they transfer. From (\ref{eq:so}), \mbox{$s=\mathrm{Cov}(v,u_k)/\mathrm{Var}(u_k)$} and \mbox{$o=\bar v-s\bar u_k$}. Consider a mismatch in each feature between a range block and a candidate domain:
-\emph{Mean (\mbox{$\mu$}).} Any difference \mbox{$\bar v-\bar u_k$} is absorbed exactly by the additive offset \mbox{$o$}. A \mbox{\mbox{$\mu$}-mismatch} in the pool barely affects final MSE, so \mbox{$\mu$} should be \emph{down}-weighted for selection.
+\emph{Mean (\mbox{$\mu$}).} Any difference \mbox{$\bar v-\bar u_k$} is absorbed exactly by the additive offset \mbox{$o$}. A \mbox{$\mu$}-mismatch in the pool barely affects final MSE, so \mbox{$\mu$} should be \emph{down}-weighted for selection.
 \emph{Standard deviation~(\mbox{$\sigma$}).} Since \mbox{$s\approx\sigma_v/\sigma_{u_k}$} for well-correlated blocks, a large \mbox{\mbox{$\sigma$}-mismatch} either forces \mbox{$|s|\ge1$} (the candidate is discarded by contractivity) or leaves a residual the affine model cannot remove. This is a \emph{multiplicative} penalty, so \mbox{$\sigma$} should be \emph{up}-weighted.
 \emph{Gradient/quadrant features.} These encode texture and spatial layout; their usefulness depends on the block size \mbox{$L$} (coarser at small \mbox{$L$}).
 The key point is that ``\mbox{$\sigma$} drives the multiplicative contrast, \mbox{$\mu$} is free'' follows from the \emph{form} of (\ref{eq:so}), not from any image. Hence the optimal weight ratio is expected to be approximately image-independent, and a GA trained on one image can transfer. The learned weights of (\ref{eq:learned_w}) bear this out directly---\mbox{$\mu$} is suppressed and \mbox{$\sigma$} amplified by the predicted ordering. Empirically (Section~\ref{sec:exp2}) these weights improve PSNR on every one of the ten unseen test images, never degrading any, supporting the argument. This is reported as a modest but consistent gain whose chief significance is methodological: it shows the importance of each feature can be \emph{learned} rather than manually set.
@@ -288,11 +283,7 @@ Experiments run on an AMD EPYC 7313P 16-core server with FreeBSD 15.0. All metho
 The dataset consists of ten images from DIV2K~\cite{div2k}---0002, 0007, 0029, 0030, 0032, 0037, 0043, 0049, 0051, 0060---each resized to \mbox{$1024\times1024$} and converted to 8-bit grayscale. The GA training image (0003) is \emph{not} in the test set, so all reported GA results are on unseen images.
 
 \subsubsection{FIC parameters}
-<<<<<<< HEAD
 \mbox{$L\!=\!4$}, \mbox{$2L\!=\!8$}, \mbox{$\delta\!=\!4$}, giving \mbox{$M=65{,}536$} range and \mbox{$P\!=\!65{,}025$} domain blocks. The stored code uses \mbox{$b_s=8$} and \mbox{$b_o=12$}, giving \mbox{$b_{\text{code}}=39$} bits and \mbox{$\mathrm{CR}\approx3.28{:}1$}; decoding uses 20~iterations.
-=======
-\mbox{$L\!=\!4$}, \mbox{$2L\!=\!8$}, \mbox{$\delta\!=\!4$}, giving \mbox{$M=65{,}536$} range and \mbox{$P\!=\!65{,}025$} domain blocks, \mbox{$\mathrm{CR}\approx3.28{:}1$}, decode 20~iterations.
->>>>>>> dd70416 (compression)
 
 \subsubsection{Budget and protocol}
 The FFE budget is fixed at 800~per range block. This is generous for FGDS---at \mbox{$K\!=\!80$} it finishes in \mbox{$K\!\times\!8\!=\!640$}~FFEs and is flat thereafter---and is chosen so the convergence plots show, on a common axis, exactly when each method saturates. Stochastic methods (PSO, memetic PSO, FG-PSO) run 5~times per image with seeds \mbox{$\{42,\dots,46\}$}; FGDS is deterministic. Pairwise comparisons use the Wilcoxon signed-rank test~\cite{wilcoxon1945individual} over the \mbox{$n\!=\!10$}~images.
@@ -301,9 +292,9 @@ The FFE budget is fixed at 800~per range block. This is generous for FGDS---at \
 The study is a single connected line of evidence, organized as four runs:
 \textbf{(E1)} PSO vs.\ memetic PSO vs.\ FG-PSO vs.\ FGDS-exhaustive, all feature-based methods at \mbox{$K\!=\!40$}, establishing the optimizer-removal result;
 \textbf{(E2)} the three FGDS variants---pairwise, KD-Tree, and KD-Tree+GA weights---at \mbox{$K\!=\!80$}, isolating the preprocessing speedup and the GA contribution;
-\textbf{(E3)} a \mbox{$K$}-sensitivity sweep \mbox{$K\in\{5,10,20,40,80,160\}$} for KD-Tree FGDS, locating the optimal parameter trade-off;
+\textbf{(E3)} a \mbox{$K$}-sensitivity sweep \mbox{$K\in\{5,10,20,40,80,160\}$} for KD-Tree FGDS, locating the best quality--time trade-off under the fixed FFE protocol;
 \textbf{(E4)} a same-size random-pool control vs.\ FGDS, both at \mbox{$K\!=\!80$}, attributing the gain to feature-guided selection.
-E1 fixes \mbox{$K\!=\!40$} because that was the pool size of the original FG-PSO; the \mbox{$K$}-sweep of E3 then justifies adopting \mbox{$K\!=\!80$} for E2 and E4. E1 reports the encoder search-loop time to isolate the optimizer effect, whereas E2 and E3 separately report preprocessing and total time for the final FGDS variants.
+E1 fixes \mbox{$K\!=\!40$} because that was the pool size used by FG-PSO in the development ablation; the \mbox{$K$}-sweep of E3 then justifies adopting \mbox{$K\!=\!80$} for E2 and E4. E1 reports the encoder search-loop time to isolate the optimizer effect, whereas E2 and E3 separately report preprocessing and total time for the final FGDS variants.
 
 
 %% ================================================================
@@ -398,9 +389,9 @@ Figure~\ref{fig:conv_0030} shows the three variants on image 0030; the curves ar
 
 \begin{table}[t]
 \centering
-\caption{E3: \mbox{$K$}-sensitivity for KD-Tree FGDS, averaged over ten images. FFE~\mbox{$=\mbox{$K\!\times\!8$}$}. MSE is encoder-side block-matching MSE.}
+\caption{E3: \mbox{$K$}-sensitivity for KD-Tree FGDS, averaged over ten images. FFE is the effective per-block evaluation count under the 800-FFE protocol; rows with \mbox{$K\!\times\!8\le800$} are full exhaustive searches within the selected pool. MSE is encoder-side block-matching MSE.}
 \label{tab:k_sensitivity}
-\begin{tabular}{rrrrr}
+\begin{tabular}{rlrrr}
 \toprule
 \mbox{$K$} & \textbf{FFE} & \textbf{PSNR (dB)} & \textbf{Enc. MSE} & \textbf{Total (s)} \\
 \midrule
@@ -409,12 +400,12 @@ Figure~\ref{fig:conv_0030} shows the three variants on image 0030; the curves ar
 20  & 160  & 30.33 & 69.68 & 183.6 \\
 40  & 320  & 30.80 & 62.10 & 360.9 \\
 80  & 640  & 31.21 & 56.27 & 712.9 \\
-160 & 1280 & 31.33 & 54.65 & 884.7 \\
+160 & 800 cap & 31.33 & 54.65 & 884.7 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:k_sensitivity} shows diminishing returns. PSNR rises steadily through \mbox{$K\!=\!80$} (31.21~dB) but only +0.12~dB more at \mbox{$K\!=\!160$}, despite an approximately 1.24-fold~increase in encode time---evidence that the top-80 feature neighbors already capture most high-quality domain candidates for each range block. Consequently, \mbox{$K = 80$} is selected as the default parameter trade-off and used in E2 and E4. Note that even \mbox{$K\!=\!40$} (30.80~dB) already exceeds every PSO baseline in Table~\ref{tab:results} at a fraction of their time, so the choice of \mbox{$K$}~trades quality against speed within a regime that already dominates the metaheuristic methods.
+Table~\ref{tab:k_sensitivity} shows diminishing returns. PSNR rises steadily through \mbox{$K\!=\!80$} (31.21~dB). Increasing the candidate pool to \mbox{$K\!=\!160$} under the same 800-FFE cap adds only +0.12~dB while increasing total time by about 1.24-fold, indicating that the top-80 feature neighbors already capture most high-quality domain candidates for each range block. Consequently, \mbox{$K = 80$} is selected as the default quality--time trade-off and used in E2 and E4. Note that even \mbox{$K\!=\!40$} (30.80~dB) already exceeds every PSO baseline in Table~\ref{tab:results} at a fraction of their time, so the choice of \mbox{$K$}~trades quality against speed within a regime that already dominates the metaheuristic methods.
 
 \subsection{E4: Is it the features, or just a smaller pool?}
 
@@ -482,25 +473,25 @@ With \mbox{$n\!=\!10$} paired images and FGDS winning every pair, each test atta
         \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}
         \caption{FGDS+GA}
     \end{subfigure}
-    \caption{Reconstruction on image~0030. (a)~Original image. (b)~Reconstructed image using FGDS+GA with \mbox{$K = 80$} (32.73~dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients at \mbox{$\mathrm{CR}\approx3.28{:}1$}.}
+    \caption{Reconstruction on image~0030. (a)~Original image. (b)~Reconstructed image using FGDS+GA with \mbox{$K = 80$} (32.73~dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients under the common FIC code structure.}
     \label{fig:visual}
 \end{figure}
 
-Figure~\ref{fig:visual} shows a representative reconstruction. At \mbox{$\mathrm{CR}\approx3.28{:}1$} FGDS preserves the dominant structure---mountain ridges, snow boundaries, and smooth sky gradients---consistent with its 32.73~dB PSNR on this~image.
+Figure~\ref{fig:visual} shows a representative reconstruction. Under the common FIC code structure, FGDS preserves the dominant structure---mountain ridges, snow boundaries, and smooth sky gradients---consistent with its 32.73~dB PSNR on this~image.
 
 
 %% ================================================================
 \section{Discussion and Limitations}
 %% ================================================================
 
-The results should be interpreted with three limitations in mind. First, the GA weighting contributes only a small PSNR gain (+0.05~dB on average); its role is methodological rather than being the primary source of improvement. Second, the experiments use grayscale images, fixed block sizes, and a fixed compression ratio, so extensions to color images, adaptive partitions, and other bit-rate settings remain open. Third, full exhaustive search over all \mbox{$P\times8$} candidates is impractical at \mbox{$1024^2$} under the present implementation, so the study compares against PSO-family methods under a fixed FFE budget rather than against a full-search upper bound. These limitations do not affect the main conclusion: under equal or smaller FFE budgets, feature-guided pool construction is more important than the inner metaheuristic optimizer.
+The results should be interpreted with four limitations in mind. First, the GA weighting contributes only a small PSNR gain (+0.05~dB on average); its role is methodological rather than being the primary source of improvement. Second, the experiments use grayscale images, fixed block sizes, and a fixed code structure, so extensions to color images, adaptive partitions, and other bit-rate settings remain open. Third, PSNR is measured from the decoded affine maps before coefficient quantization; bitstream-decoded PSNR should be reported in future work to quantify the additional effect of coefficient precision. Fourth, full exhaustive search over all \mbox{$P\times8$} candidates is impractical at \mbox{$1024^2$} under the present implementation, so the study compares against PSO-family methods under a fixed FFE budget rather than against a full-search upper bound. These limitations do not affect the main conclusion: under equal or smaller FFE budgets, feature-guided pool construction is more important than the inner metaheuristic optimizer.
 
 
 %% ================================================================
 \section{Conclusion}
 %% ================================================================
 
-This work set out to accelerate Fractal Image Compression with heuristics and, by following the evidence, arrived at a different conclusion than the existing PSO-based literature. The experiments demonstrate that for high-resolution FIC, the limiting factor is not the optimizer but the quality of the candidate search space. The \mbox{$K\!=\!40$} ablation shows that once a feature-guided pool exists, exhaustive search dominates the inner PSO, improving PSNR by 1.93~dB on average over PSO and reducing reported search time by about 4 times. The final \mbox{$K\!=\!80$} KD-Tree+GA version improves PSNR by 2.39~dB on average over PSO and remains about 2 times faster when preprocessing is included. Consequently, the heuristic is shifted from block \emph{matching} to block \emph{selection}. The proposed FGDS method pairs an 8-dimensional isometry-invariant descriptor with KD-Tree nearest-neighbor selection---reducing pool construction time from 179.6~s to 0.13~s---and incorporates a Genetic Algorithm to learn the feature weights offline. These weights generalize across images because they reflect the mathematical structure of the affine model rather than specific image content. All gains are significant at \mbox{$p<0.01$}, and a random-pool control attributes +3.25~dB specifically to the feature-guided selection.
+This work set out to accelerate Fractal Image Compression with heuristics and, by following the evidence, arrived at a different conclusion than the existing PSO-based literature. The experiments demonstrate that for high-resolution FIC, the limiting factor is not the optimizer but the quality of the candidate search space. The \mbox{$K\!=\!40$} ablation shows that once a feature-guided pool exists, exhaustive search dominates the inner PSO, improving PSNR by 1.93~dB on average over PSO and reducing the reported search-loop time by about 4 times. The final \mbox{$K\!=\!80$} KD-Tree+GA version improves PSNR by 2.39~dB on average over PSO and remains about 2 times faster when preprocessing is included. Consequently, the heuristic is shifted from block \emph{matching} to block \emph{selection}. The proposed FGDS method pairs an 8-dimensional isometry-robust descriptor with KD-Tree nearest-neighbor selection---reducing pool construction time from 179.6~s to 0.13~s---and incorporates a Genetic Algorithm to learn the feature weights offline. These weights generalize across images because they reflect the mathematical structure of the affine model rather than specific image content. All gains are significant at \mbox{$p<0.01$}, and a random-pool control attributes +3.25~dB specifically to the feature-guided selection.
 
 The broader contribution is the design principle: when a metaheuristic underperforms on a combinatorial problem, the remedy may be to apply it to the \emph{construction of the search space} rather than to the search itself. The idea of learning which features matter for a selection task---rather than guessing them---is not specific to FIC and may transfer to other matching and retrieval problems. Future work includes color images, per-block adaptive \mbox{$K$} driven by block complexity, and replacing the hand-designed descriptor with a learned embedding.
 
