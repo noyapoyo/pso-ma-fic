@@ -151,7 +151,7 @@
 % ---- Outline ----
 \section{Roadmap}
 \begin{frame}{Presentation Roadmap}
-  \begin{columns}[T]
+  \begin{columns}[T,onlytextwidth]
     \begin{column}{0.52\textwidth}
       \begin{enumerate}
         \item \textbf{Problem definition and goal}
@@ -161,6 +161,7 @@
         \item \textbf{Conclusion and future work}
       \end{enumerate}
     \end{column}
+    \hfill
     \begin{column}{0.44\textwidth}
       \begin{block}{Take-away}
         We move the heuristic from \textbf{block matching} to \textbf{block selection}.
@@ -176,8 +177,8 @@
 % ============================================================
 
 \begin{frame}{Problem Definition and Research Goal}
-  \begin{columns}[T]
-    \begin{column}{0.52\textwidth}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.5\textwidth}
       \begin{block}{Fractal Image Compression (FIC)}
         FIC represents an image by self-similar block mappings:
         a small \alert{range block} is approximated by a transformed larger
@@ -194,7 +195,8 @@
         candidate evaluations per $1024\times1024$ image.
       \end{alertblock}
     \end{column}
-    \begin{column}{0.48\textwidth}
+    \hfill
+    \begin{column}{0.46\textwidth}
       \centering
       \begin{tikzpicture}[scale=0.9]
         \draw[step=0.4cm, gray!50, thin] (0,0) grid (3.2,3.2);
@@ -205,7 +207,7 @@
         \draw[very thick, ntnured, fill=ntnured!10] (1.6,0.4) rectangle (2.4,1.2);
         \node[ntnured, font=\tiny, right] at (2.45,0.8) {domain $u$};
         \draw[-{Stealth}, thick, accentgreen]
-            (1.6,1.0) .. controls (1.0,2.0) .. (0.6,2.4);
+        (1.6,1.0) .. controls (1.0,2.0) .. (0.6,2.4);
         \node[accentgreen, font=\tiny] at (1.15,1.95) {shrink + rotate};
       \end{tikzpicture}
       \vspace{0.2cm}
@@ -222,8 +224,8 @@
 % ============================================================
 
 \begin{frame}{Solution Representation: How FIC Encodes and Decodes}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
       \begin{block}{One fractal code per range block}
         \[
           C_i=(d^*, k^*, s^*, o^*)
@@ -238,7 +240,8 @@
         \hat v = s\cdot T_k(\text{downsample}(u_d)) + o
       \]
     \end{column}
-    \begin{column}{0.5\textwidth}
+    \hfill
+    \begin{column}{0.48\textwidth}
       \begin{block}{Fitness function evaluation (FFE)}
         For a fixed $(d,k)$, $s$ and $o$ have a closed-form least-squares solution:
         \[
@@ -257,18 +260,18 @@
 \end{frame}
 
 \begin{frame}{Stored Representation: Our \texttt{.fic} File}
-  \begin{columns}[T,totalwidth=\textwidth]
-    \begin{column}{0.53\textwidth}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.51\textwidth}
       \begin{block}{Binary file layout}
         \centering
         \begin{tikzpicture}[x=0.78cm,y=0.74cm]
           \draw[fill=accentblue!12, draw=accentblue!70, thick]
-            (0,0) rectangle (2.2,0.9);
+          (0,0) rectangle (2.2,0.9);
           \node[font=\scriptsize] at (1.1,0.45) {Header};
           \node[font=\tiny] at (1.1,0.16) {16 bytes};
 
           \draw[fill=ntnured!10, draw=ntnured!70, thick]
-            (2.2,0) rectangle (8.2,0.9);
+          (2.2,0) rectangle (8.2,0.9);
           \node[font=\scriptsize] at (5.2,0.45) {Packed fractal codes};
           \node[font=\tiny] at (5.2,0.16) {$65{,}536$ codes};
 
@@ -294,7 +297,8 @@
         domain stride, and quantization bits for $s$ and $o$.
       \end{exampleblock}
     \end{column}
-    \begin{column}{0.47\textwidth}
+    \hfill
+    \begin{column}{0.45\textwidth}
       \begin{block}{Size calculation at $1024\times1024$}
         \small
         \[
@@ -328,7 +332,7 @@
 % ============================================================
 
 \begin{frame}{Why PSO Alone Is Not Enough}
-  \begin{columns}[T]
+  \begin{columns}[T,onlytextwidth]
     \begin{column}{0.48\textwidth}
       \begin{block}{Prior idea}
         Treat $(d,k)$ as the decision variables and search using PSO or GA.
@@ -342,9 +346,10 @@
         domain-index objective is non-smooth.
       \end{alertblock}
     \end{column}
-    \begin{column}{0.52\textwidth}
+    \hfill
+    \begin{column}{0.48\textwidth}
       \centering
-      \begin{tikzpicture}[scale=0.86, transform shape, node distance=0.45cm and 0.7cm]
+      \begin{tikzpicture}[scale=0.68, transform shape, node distance=0.45cm and 0.7cm]
         \node[box] (pso) {\textbf{PSO}\\ full pool};
         \node[box, right=of pso] (mpso) {\textbf{Memetic PSO}\\ PSO + LS};
         \node[box, right=of mpso] (fgpso) {\textbf{FG-PSO}\\ feature pool + PSO};
@@ -378,13 +383,13 @@
     \draw[flow] (kd)--(pool);
     \draw[flow] (pool)--(exh);
     \node[below=0.55cm of wfs, font=\scriptsize, accentorange, text width=3.2cm, align=center]
-        (ga) {GA learns feature weights\\ offline once};
+    (ga) {GA learns feature weights\\ offline once};
     \draw[-{Stealth}, thick, accentorange, dashed] (ga) -- (wfs);
   \end{tikzpicture}
 
   \vspace{0.35cm}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
       \begin{block}{Online encoding}
         \begin{enumerate}
           \item Extract features for range/domain blocks.
@@ -393,7 +398,8 @@
         \end{enumerate}
       \end{block}
     \end{column}
-    \begin{column}{0.5\textwidth}
+    \hfill
+    \begin{column}{0.48\textwidth}
       \begin{exampleblock}{At $K=80$}
         Per-range search space:
         \[
@@ -406,8 +412,8 @@
 \end{frame}
 
 \begin{frame}{Feature Extraction and Candidate Selection}
-  \begin{columns}[T]
-    \begin{column}{0.52\textwidth}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.49\textwidth}
       \textbf{8-D isometry-invariant descriptor}
       \[
         f(b)=
@@ -425,7 +431,8 @@
         Features are normalized; $\mathbf w$ is learned offline.
       \end{block}
     \end{column}
-    \begin{column}{0.48\textwidth}
+    \hfill
+    \begin{column}{0.47\textwidth}
       \begin{exampleblock}{KD-Tree candidate selection}
         Pairwise feature search:
         \[
@@ -446,7 +453,7 @@
 \end{frame}
 
 \begin{frame}{What Is a KD-Tree?}
-  \begin{columns}[T]
+  \begin{columns}[T,onlytextwidth]
     \begin{column}{0.48\textwidth}
       \begin{block}{Idea}
         A \alert{KD-Tree} stores multi-dimensional points by recursively splitting
@@ -465,7 +472,8 @@
         \end{itemize}
       \end{exampleblock}
     \end{column}
-    \begin{column}{0.52\textwidth}
+    \hfill
+    \begin{column}{0.48\textwidth}
       \centering
       \begin{tikzpicture}[scale=0.95]
         \draw[thick] (0,0) rectangle (4.1,3.0);
@@ -475,8 +483,8 @@
         \draw[accentgreen, thick] (1.75,1.15)--(4.1,1.15);
         \node[accentgreen, font=\tiny, right] at (4.05,1.15){split by $q_1$};
         \foreach \p in {(0.55,2.35),(1.05,0.9),(0.85,2.65),(1.25,1.1),
-                        (2.35,2.1),(3.1,0.6),(2.65,2.55),(3.0,1.85),(2.05,0.75)}
-          \fill[black] \p circle (1.7pt);
+            (2.35,2.1),(3.1,0.6),(2.65,2.55),(3.0,1.85),(2.05,0.75)}
+        \fill[black] \p circle (1.7pt);
         \fill[ntnured] (2.55,2.25) circle (2.8pt);
         \node[ntnured, font=\tiny, right] at (2.62,2.42){range query};
         \draw[ntnured, dashed, thick] (2.55,2.25) circle (0.72cm);
@@ -492,8 +500,8 @@
 \end{frame}
 
 \begin{frame}{Genetic Algorithm: Learning Feature Weights}
-  \begin{columns}[T]
-    \begin{column}{0.5\textwidth}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
       \begin{block}{Why GA?}
         Equal weights assume all features matter equally. But in the affine model,
         mean mismatch is absorbed by $o$, while contrast mismatch affects $s$ and MSE.
@@ -507,7 +515,8 @@
         \end{itemize}
       \end{exampleblock}
     \end{column}
-    \begin{column}{0.5\textwidth}
+    \hfill
+    \begin{column}{0.48\textwidth}
       \textbf{Learned weights}
       \[
         [0.18,\,1.36,\,0.97,\,0.96,\,1.29,\,1.04,\,1.00,\,0.75]
@@ -527,7 +536,7 @@
 
 \begin{frame}{GA Crossover: How New Feature Weights Are Created}
   \small
-  \begin{columns}[T,totalwidth=\textwidth]
+  \begin{columns}[T,onlytextwidth]
     \begin{column}{0.48\textwidth}
       We use real-valued chromosomes:
       \vspace{-0.1cm}
@@ -543,11 +552,11 @@
       \]
       \vspace{-0.28cm}
       \[
-      \begin{aligned}
-        w_{\text{child}} &\sim U[L,H],\\
-        L &= \min(p_1,p_2)-\alpha I,\\
-        H &= \max(p_1,p_2)+\alpha I,\quad \alpha=0.5.
-      \end{aligned}
+        \begin{aligned}
+          w_{\text{child}} & \sim U[L,H],                               \\
+          L                & = \min(p_1,p_2)-\alpha I,                  \\
+          H                & = \max(p_1,p_2)+\alpha I,\quad \alpha=0.5.
+        \end{aligned}
       \]
       \vspace{-0.18cm}
       \begin{block}{After crossover}
@@ -555,7 +564,8 @@
         weights to remain positive.
       \end{block}
     \end{column}
-    \begin{column}{0.52\textwidth}
+    \hfill
+    \begin{column}{0.48\textwidth}
       \centering
       \begin{tikzpicture}[scale=0.78, transform shape]
         \draw[->] (-0.3,0)--(6.2,0) node[right,font=\scriptsize]{weight};
@@ -569,7 +579,7 @@
         \draw[decorate, decoration={brace, amplitude=4pt}] (1.6,0.45)--(4.1,0.45);
         \node[font=\scriptsize] at (2.85,0.78) {$I=|p_2-p_1|$};
         \node[accentgreen, font=\scriptsize] at (2.85,-0.72)
-          {extended sampling interval};
+        {extended sampling interval};
         \fill[black] (3.05,0) circle (2.8pt) node[below=4pt,font=\scriptsize]{child};
         \draw[decorate, decoration={brace, amplitude=3pt}] (0.35,-1.05)--(1.6,-1.05);
         \node[font=\tiny] at (0.98,-1.3){$\alpha I$};
@@ -590,7 +600,7 @@
 % ============================================================
 
 \begin{frame}{Experimental Setup and Benchmarks}
-  \begin{columns}[T]
+  \begin{columns}[T,onlytextwidth]
     \begin{column}{0.48\textwidth}
       \begin{block}{Benchmark problem instances}
         \begin{itemize}
@@ -602,7 +612,8 @@
         \end{itemize}
       \end{block}
     \end{column}
-    \begin{column}{0.52\textwidth}
+    \hfill
+    \begin{column}{0.48\textwidth}
       \begin{exampleblock}{Benchmark algorithms / ablations}
         \begin{description}
           \item[PSO] standard PSO over full domain pool.
@@ -618,19 +629,19 @@
 \end{frame}
 
 \begin{frame}{Main Result: The Optimizer Can Be Removed}
-  \begin{columns}[T]
+  \begin{columns}[T,onlytextwidth]
     \begin{column}{0.46\textwidth}
       \centering
       \footnotesize
       \begin{tabular}{lrr}
         \toprule
-        \textbf{Method} & \textbf{PSNR} & \textbf{Time(s)} \\
+        \textbf{Method}        & \textbf{PSNR}  & \textbf{Time(s)} \\
         \midrule
-        PSO              & 28.87 & 1419.8 \\
-        Memetic PSO      & 29.15 & 1317.2 \\
-        FG-PSO ($K=40$)  & 30.27 & 1268.8 \\
+        PSO                    & 28.87          & 1419.8           \\
+        Memetic PSO            & 29.15          & 1317.2           \\
+        FG-PSO ($K=40$)        & 30.27          & 1268.8           \\
         \rowcolor{ntnured!12}
-        \textbf{FGDS ($K=40$)} & \textbf{30.80} & \textbf{358.0} \\
+        \textbf{FGDS ($K=40$)} & \textbf{30.80} & \textbf{358.0}   \\
         \bottomrule
       \end{tabular}
       \vspace{0.25cm}
@@ -641,7 +652,8 @@
         reported search loop.
       \end{block}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \hfill
+    \begin{column}{0.5\textwidth}
       \includegraphics[width=\linewidth]{images/convergence_average_exp1.png}
       {\scriptsize FGDS saturates at $K\times8=320$ FFEs and remains above PSO variants.}
     \end{column}
@@ -649,7 +661,7 @@
 \end{frame}
 
 \begin{frame}{Final Pipeline Analysis: KD-Tree, $K$, and Random Control}
-  \begin{columns}[T]
+  \begin{columns}[T,onlytextwidth]
     \begin{column}{0.48\textwidth}
       \centering
       \footnotesize
@@ -657,11 +669,11 @@
       \vspace{0.05cm}
       \begin{tabular}{lrr}
         \toprule
-        \textbf{Variant} & \textbf{PSNR} & \textbf{CandSel(s)} \\
+        \textbf{Variant} & \textbf{PSNR}  & \textbf{CandSel(s)} \\
         \midrule
-        Pairwise      & 31.21 & 179.57 \\
-        KD-Tree       & 31.21 & \textbf{0.13} \\
-        KD-Tree + GA  & \textbf{31.26} & 0.12 \\
+        Pairwise         & 31.21          & 179.57              \\
+        KD-Tree          & 31.21          & \textbf{0.13}       \\
+        KD-Tree + GA     & \textbf{31.26} & 0.12                \\
         \bottomrule
       \end{tabular}
       \vspace{0.25cm}
@@ -670,16 +682,17 @@
       \vspace{0.05cm}
       \begin{tabular}{rrrr}
         \toprule
-        $K$ & FFE & PSNR & Total(s) \\
+        $K$ & FFE  & PSNR  & Total(s) \\
         \midrule
-        40  & 320  & 30.80 & 360.9 \\
+        40  & 320  & 30.80 & 360.9    \\
         \rowcolor{ntnured!12}
-        80  & 640  & 31.21 & 712.9 \\
-        160 & 1280 & 31.33 & 884.7 \\
+        80  & 640  & 31.21 & 712.9    \\
+        160 & 1280 & 31.33 & 884.7    \\
         \bottomrule
       \end{tabular}
     \end{column}
-    \begin{column}{0.52\textwidth}
+    \hfill
+    \begin{column}{0.48\textwidth}
       \includegraphics[width=0.93\linewidth]{images/convergence_average_random.png}
       \begin{alertblock}{Random-pool control}
         FGDS-80: \textbf{31.21 dB}; Random-80: 27.96 dB.
@@ -691,16 +704,17 @@
 \end{frame}
 
 \begin{frame}{Visual Quality and Statistical Significance}
-  \begin{columns}[T]
+  \begin{columns}[T,onlytextwidth]
     \begin{column}{0.46\textwidth}
       \centering
-      \begin{columns}[T]
-        \begin{column}{0.5\textwidth}
+      \begin{columns}[T,onlytextwidth]
+        \begin{column}{0.48\textwidth}
           \centering
           \includegraphics[width=\linewidth]{images/0030_original.png}\\
           {\scriptsize Original}
         \end{column}
-        \begin{column}{0.5\textwidth}
+        \hfill
+        \begin{column}{0.48\textwidth}
           \centering
           \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}\\
           {\scriptsize FGDS+GA, 32.73 dB}
@@ -709,7 +723,8 @@
       \vspace{0.2cm}
       {\scriptsize Ridges, snow boundaries, and sky gradients are preserved.}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \hfill
+    \begin{column}{0.5\textwidth}
       \begin{block}{Wilcoxon signed-rank tests}
         \footnotesize
         All comparisons win on all 10 paired images:
