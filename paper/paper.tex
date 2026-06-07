@@ -8,16 +8,13 @@
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{booktabs}
-\usepackage{multirow}
-\usepackage{flushend}
 % Use Times-like font (compatible with pdflatex and xelatex)
 \usepackage{iftex}
-\ifPDFTeX
-  \usepackage{newtxtext,newtxmath}
-\else
+\ifPDFTeX\else
   \usepackage{fontspec}
-  \setmainfont{Times New Roman}
+  \IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{}
 \fi
+\renewcommand{\ttdefault}{cmtt}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -140,7 +137,17 @@ Following~\cite{PSOFIC}, each particle is a continuous vector \mbox{$\mathbf{X}_
 with \mbox{$N_p\!=\!40$}, \mbox{$w\!=\!0.9$}, \mbox{$c_1\!=\!c_2\!=\!2.0$}, velocity clamped to \mbox{$\pm v_{\max}$}. The search domain is \mbox{$[0,P\!-\!1]\times[0,7]$}.
 
 \subsection{Memetic PSO}
-Memetic PSO augments the swarm with periodic local search on the top 20\%~of particles. \textbf{Isometry-LS} tries the 7~alternative isometries of a particle's current domain (\mbox{$\le 7$}~FFEs); \textbf{Spatial-LS} tries the 8~spatially adjacent domain blocks with the same isometry (\mbox{$\le 8$}~FFEs), exploiting spatial self-similarity. A final pass refines the global best. All LS evaluations count against the FFE~budget. This represents the first finding in the development process: local search reliably raises PSNR but incurs additional computational cost (Section~\ref{sec:exp1}).
+Memetic PSO applies deterministic local search after periodic PSO updates. To limit overhead, LS is applied only to the top 20\%~of particles ranked by fitness, followed by one terminal LS pass on the final global best. For one range block, write a candidate as \mbox{$x=(d,k)$}, where \mbox{$d$} indexes a domain block and \mbox{$k\in\mathcal{K}=\{0,\ldots,7\}$} is an isometry. Let \mbox{$f(d,k)$} denote the resulting block-wise MSE after fitting \mbox{$s,o$}; lower is better, so LS accepts only non-worsening moves. \textbf{Isometry-LS} fixes \mbox{$d$} and tests candidate isometries \mbox{$k'\in\mathcal{K}$}:
+\begin{equation}
+k^*=\arg\min_{k'\in\mathcal{K}} f(d,k').
+\label{eq:isometry_ls}
+\end{equation}
+Here \mbox{$k^*$} is the refined isometry. The current pair \mbox{$(d,k)$} has already been evaluated by PSO, so at most the other seven isometries are new evaluations (\mbox{$\le7$}~FFEs). \textbf{Spatial-LS} then fixes \mbox{$k^*$}. Let \mbox{$\mathcal{N}_8(d)$} be the valid domain indices immediately adjacent to \mbox{$d$} in the 2D domain grid; for trial domains \mbox{$d'$}, it selects
+\begin{equation}
+d^*=\arg\min_{d'\in\{d\}\cup\mathcal{N}_8(d)} f(d',k^*).
+\label{eq:spatial_ls}
+\end{equation}
+Here \mbox{$d^*$} is the refined domain. Since \mbox{$(d,k^*)$} is already known, only neighboring domains are newly evaluated; there are at most eight, and fewer on boundaries, giving \mbox{$\le8$}~FFEs. All LS evaluations count against the FFE~budget. This represents the first finding in the development process: local search reliably raises PSNR but incurs additional computational cost (Section~\ref{sec:exp1}).
 
 \subsection{Feature-Guided PSO (FG-PSO)}
 This observation motivated restricting the search space of the PSO. FG-PSO first builds, for each range block, a feature-guided candidate pool of \mbox{$K$}~domains (Section~\ref{sec:proposed}), then runs the same memetic PSO inside the reduced subspace \mbox{$[0,K\!-\!1]\times[0,7]$}~rather than the full pool. Shrinking the space from approximately \mbox{$5\times10^5$} to \mbox{$K\!\times\!8$}~candidates lets a small swarm cover a meaningful fraction of it, and FG-PSO outperforms both baseline PSO variants. This stage is kept as a development baseline because it isolates the effect of feature-guided pool construction before the optimizer is removed.
