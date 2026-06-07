@@ -9,7 +9,6 @@
 \usepackage{xcolor}
 \usepackage{booktabs}
 \usepackage{multirow}
-\usepackage{subcaption}
 \usepackage{flushend}
 % Use Times-like font (compatible with pdflatex and xelatex)
 \usepackage{iftex}
@@ -91,7 +90,7 @@ The main contributions of this paper are:
 
 FIC originates from the theory of Iterated Function Systems (IFS)~\cite{Barnsley1985, barnsley2014fractals}, whose Collage Theorem and Contractive Mapping Fixed-Point Theorem justify representing an image by contractive self-maps~\cite{barnsley1988better}. Jacquin~\cite{FICOriginal, 241507} turned this into a practical block-based coder.
 
-A grayscale image of size \mbox{$N\times N$} is partitioned into a range pool~\mbox{$\mathcal{R}$} of \mbox{$M=(N/L)^2$} non-overlapping \mbox{$L\times L$} range blocks and a domain pool~\mbox{$\mathcal{D}$} of \mbox{$P=\lfloor(N-2L)/\delta+1\rfloor^2$} overlapping \mbox{$2L\times2L$} domain blocks taken with stride~\mbox{$\delta$}. Each domain block is downsampled to \mbox{$L\times L$} by \mbox{$2\times2$} average pooling. For a range block~\mbox{$v$} and a domain block~\mbox{$u$}, the encoder seeks a contractive affine map combining one of eight Dihedral isometries~\mbox{$T_k$} (\mbox{$k\in\{0,\dots,7\}$}) with a contrast~\mbox{$s$} and brightness~\mbox{$o$}:
+A grayscale image of size \mbox{$N\times N$} is partitioned into a range pool~\mbox{$\mathcal{R}$} of \mbox{$M=(N/L)^2$} non-overlapping \mbox{$L\times L$} range blocks and a domain pool~\mbox{$\mathcal{D}$} of \mbox{$P=(\lfloor(N-2L)/\delta\rfloor+1)^2$} overlapping \mbox{$2L\times2L$} domain blocks taken with stride~\mbox{$\delta$}. Each domain block is downsampled to \mbox{$L\times L$} by \mbox{$2\times2$} average pooling. For a range block~\mbox{$v$} and a domain block~\mbox{$u$}, the encoder seeks a contractive affine map combining one of eight Dihedral isometries~\mbox{$T_k$} (\mbox{$k\in\{0,\dots,7\}$}) with a contrast~\mbox{$s$} and brightness~\mbox{$o$}:
 \begin{equation}
 \hat{v} = s\cdot T_k(\mathrm{downsample}(u)) + o.
 \label{eq:affine}
@@ -214,7 +213,7 @@ Within \mbox{$\mathcal{P}_i$}, all \mbox{$K\!\times\!8$}~domain--isometry pairs 
 \subsection{Learning feature weights with a Genetic Algorithm}
 \label{sec:ga_weights}
 
-Equal weighting (\mbox{$\mathbf w=\mathbf 1$}) assumes all eight dimensions matter equally for pool quality, which is not true: the dimensions play different roles in the affine match of (\ref{eq:so}). Therefore, the weight vector \mbox{$\mathbf w\in\mathbb{R}^8_{>0}$} is learned using a Genetic Algorithm~\cite{holland1975adaptation} run \emph{once, offline}, on a single training image disjoint from the test set, and applied to all test images at zero extra encoding cost. This is a deliberately different use of a metaheuristic from the discarded PSO matcher: GA optimizes the \emph{design of the feature space}, not the per-block search.
+Equal weighting (\mbox{$\mathbf w=\mathbf 1$}) assumes all eight dimensions matter equally for pool quality, which is not true: the dimensions play different roles in the affine match of (\ref{eq:so}). Therefore, the weight vector \mbox{$\mathbf w\in\mathbb{R}^8_{>0}$} is learned using a Genetic Algorithm run \emph{once, offline}, on a single training image disjoint from the test set, and applied to all test images at zero extra encoding cost. This is a deliberately different use of a metaheuristic from the discarded PSO matcher: GA optimizes the \emph{design of the feature space}, not the per-block search.
 
 \paragraph*{Fitness} An individual is a weight vector \mbox{$\mathbf w$}. To evaluate it, weighted feature extraction, KD-Tree query, and exhaustive search are run on a random 2\%~sample of range blocks (\mbox{$\approx$}1{,}300~blocks for \mbox{$1024^2$}), returning the average MSE; the fitness is defined as \mbox{$-\mathrm{avg\,MSE}$}. Raw features, domain statistics, and isometry tables are precomputed once, so each evaluation only re-weights, rebuilds the tree, and scans the sample.
 
@@ -462,17 +461,17 @@ With \mbox{$n\!=\!10$} paired images and FGDS winning every pair, each test atta
 \subsection{Visual quality}
 \begin{figure}[t]
     \centering
-    \begin{subfigure}{0.48\columnwidth}
+    \begin{minipage}{0.48\columnwidth}
         \centering
         \includegraphics[width=\linewidth]{images/0030_original.png}
-        \caption{Original}
-    \end{subfigure}
+        \centerline{\footnotesize (a) Original}
+    \end{minipage}
     \hfill
-    \begin{subfigure}{0.48\columnwidth}
+    \begin{minipage}{0.48\columnwidth}
         \centering
         \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}
-        \caption{FGDS+GA}
-    \end{subfigure}
+        \centerline{\footnotesize (b) FGDS+GA}
+    \end{minipage}
     \caption{Reconstruction on image~0030. (a)~Original image. (b)~Reconstructed image using FGDS+GA with \mbox{$K = 80$} (32.73~dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients under the common FIC code structure.}
     \label{fig:visual}
 \end{figure}
