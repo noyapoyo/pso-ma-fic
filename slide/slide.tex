@@ -56,7 +56,7 @@
 % ==========================================
 \usetheme{Boadilla}
 \usecolortheme[named=ntnured]{structure}
-\useinnertheme[shadow]{rounded}
+% \useinnertheme[shadow]{rounded}
 
 \setbeamercolor{title}{bg=titlebg, fg=ntnured}
 \setbeamertemplate{title page}[default][rounded=true,shadow=true]
@@ -603,7 +603,7 @@
 
 \begin{frame}{Experimental Setup and Benchmarks}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.49\textwidth}
       \begin{block}{Benchmark problem instances}
         \begin{itemize}
           \item 10 DIV2K images: $1024\times1024$, grayscale.
@@ -618,10 +618,10 @@
     \begin{column}{0.48\textwidth}
       \begin{exampleblock}{Benchmark algorithms / ablations}
         \begin{description}
-          \item[PSO] standard PSO over full domain pool.
+          \item[PSO] standard PSO over full domain~pool.
           \item[Memetic PSO] PSO + local search.
           \item[FG-PSO] PSO inside a feature-guided pool.
-          \item[FGDS] feature-guided pool + exhaustive search.
+          \item[FGDS] feature-guided pool +~exhaustive~search.
           \item[Pairwise/KDTree/GA] final pipeline analysis at $K=80$.
           \item[Random-80] same-size random pool control.
         \end{description}
