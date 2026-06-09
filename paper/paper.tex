@@ -15,6 +15,8 @@
   \IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{}
 \fi
 \renewcommand{\ttdefault}{cmtt}
+\newcommand{\algorithmicsymbols}{\textbf{Symbols:}}
+\newcommand{\SYMBOLS}{\item[\algorithmicsymbols]}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -175,6 +177,7 @@ An offline Genetic Algorithm (Section~\ref{sec:ga_weights}) learns the feature w
 \label{alg:fgds}
 \begin{algorithmic}[1]
 \REQUIRE Image \mbox{$I$} (\mbox{$N\times N$}); range size \mbox{$L$}; stride \mbox{$\delta$}; pool size \mbox{$K$}; weights \mbox{$\mathbf{w}\in\mathbb{R}^8$}
+\SYMBOLS \mbox{$\mathbf f_R,\mathbf f_D$}: range/domain feature matrices; \mbox{$\boldsymbol\mu_D,\boldsymbol\sigma_D$}: domain-feature mean/std.; \mbox{$\hat{\mathbf f}$}: normalized feature; \mbox{$\hat{\mathbf f}_D,\hat{\mathbf f}_{R,i}$}: weighted domain features and the \mbox{$i$}-th weighted range feature
 \ENSURE Fractal codes \mbox{$\mathcal{C}$}
 \STATE \textbf{// Stage 1: Feature Extraction}
 \STATE \mbox{$\mathbf{f}_R\leftarrow\textsc{ExtractFeatures}(\text{range blocks})$} \COMMENT{\mbox{$(M,8)$}}
