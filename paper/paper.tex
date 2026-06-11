@@ -127,15 +127,15 @@ This section describes the compared baseline methods in the logical order of the
 \subsection{Standard PSO (baseline)}
 Following~\cite{PSOFIC}, each particle is a continuous vector \mbox{$\mathbf{X}_j=[d_j,k_j]$} decoded to a (domain index, isometry) pair by rounding and clamping. The swarm updates
 \begin{align}
-\mathbf{V}_j(t\!+\!1) &= w\mathbf{V}_j(t) + c_1 r_1(\mathbf{P}_{\text{best},j}\!-\!\mathbf{X}_j) + c_2 r_2(\mathbf{G}_{\text{best}}\!-\!\mathbf{X}_j),\\
+\mathbf{V}_j(t\!+\!1) &= \omega\mathbf{V}_j(t) + c_1 r_1(\mathbf{P}_{\text{best},j}\!-\!\mathbf{X}_j) + c_2 r_2(\mathbf{G}_{\text{best}}\!-\!\mathbf{X}_j),\\
 \mathbf{X}_j(t\!+\!1) &= \mathbf{X}_j(t) + \mathbf{V}_j(t\!+\!1),
 \end{align}
-with swarm size \mbox{$N_p\!=\!40$}, inertia \mbox{$w\!=\!0.9$}, acceleration coefficients \mbox{$c_1\!=\!c_2\!=\!2.0$}, uniform random \mbox{$r_1,r_2\in[0,1]$}, and velocity clamped to \mbox{$\pm v_{\max}$}. The search domain is \mbox{$[0,P\!-\!1]\times[0,7]$}.
+with swarm size \mbox{$N_p\!=\!40$}, inertia \mbox{$\omega\!=\!0.9$}, acceleration coefficients \mbox{$c_1\!=\!c_2\!=\!2.0$}, uniform random \mbox{$r_1,r_2\in[0,1]$}, and velocity clamped to \mbox{$\pm v_{\max}$}. The search domain is \mbox{$[0,P\!-\!1]\times[0,7]$}.
 
 \subsection{Memetic PSO}
-Memetic PSO applies deterministic local search after periodic PSO updates. To limit overhead, LS is applied only to the top 20\%~of particles ranked by fitness, followed by one terminal LS pass on the final global best. For one range block, write a candidate as \mbox{$x=(d,k)$}, where \mbox{$d$} indexes a domain block and \mbox{$k\in\mathcal{K}=\{0,\ldots,7\}$} is an isometry. Let \mbox{$f(d,k)$} denote the resulting block-wise MSE after fitting \mbox{$s,o$}; lower is better, so LS accepts only non-worsening moves. \textbf{Isometry-LS} fixes \mbox{$d$} and tests candidate isometries \mbox{$k'\in\mathcal{K}$}:
+Memetic PSO applies deterministic local search after periodic PSO updates. To limit overhead, LS is applied only to the top 20\%~of particles ranked by fitness, followed by one terminal LS pass on the final global best. For one range block, write a candidate as \mbox{$x=(d,k)$}, where \mbox{$d$} indexes a domain block and \mbox{$k\in\mathcal{I}=\{0,\ldots,7\}$} is an isometry. Let \mbox{$f(d,k)$} denote the resulting block-wise MSE after fitting \mbox{$s,o$}; lower is better, so LS accepts only non-worsening moves. \textbf{Isometry-LS} fixes \mbox{$d$} and tests candidate isometries \mbox{$k'\in\mathcal{I}$}:
 \begin{equation}
-k^*=\arg\min_{k'\in\mathcal{K}} f(d,k').
+k^*=\arg\min_{k'\in\mathcal{I}} f(d,k').
 \label{eq:isometry_ls}
 \end{equation}
 Since \mbox{$(d,k)$} is already evaluated, only the other seven isometries are new (\mbox{$\le7$}~FFEs). \textbf{Spatial-LS} then fixes \mbox{$k^*$} and searches the grid-neighbors \mbox{$\mathcal{N}_8(d)$} of \mbox{$d$}:
@@ -271,7 +271,7 @@ The key point---``\mbox{$\sigma$} drives the multiplicative contrast, \mbox{$\mu
 \midrule
 Full search & \mbox{$O(P\cdot 8)$} & \mbox{$O(P L^2)$} \\
 PSO (budget \mbox{$B$}) & \mbox{$O(B)$} & \mbox{$O(P L^2)$} \\
-FGDS (proposed) & \mbox{$O(K\cdot 8)$} & \mbox{$O(PF\log P + MK\log P)$} \\
+FGDS (proposed) & \mbox{$O(K\cdot 8)$} & $\begin{array}{@{}l@{}}O((M+P)L^2 + PF\log P\\{}+ MK\log P)\end{array}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -338,12 +338,12 @@ Table~\ref{tab:results} traces the full trail. Memetic PSO beats plain PSO on ev
 
 \textbf{Magnitude and speed.} FGDS exceeds PSO by 1.26--3.22~dB (mean~+1.93), memetic PSO by 1.13--2.72~dB (mean~+1.65), and FG-PSO by 0.42--0.69~dB (mean~+0.53)---meaningful margins for lossy compression---while averaging 358~s per image against 1420~s (PSO), 1317~s (memetic PSO), and 1269~s (FG-PSO), a 3.5--4.0\mbox{$\times$} speedup. The reported time is the wall-clock of a \emph{single} encode for every method, so this is a per-run comparison: the saving comes from the tiny per-range search (\mbox{$320$}~FFEs against the 800-FFE budget), not from running FGDS fewer times---determinism is a separate, practical benefit. This E1 search-loop timing isolates the optimizer effect; the final \mbox{$K\!=\!80$} KD-Tree setting is timed with preprocessing in Section~\ref{sec:exp2}.
 
-The decisive comparison is FG-PSO vs.\ FGDS---the same pool, with and without the inner PSO. FGDS wins on all ten images at fewer evaluations, so within a few-hundred-candidate space a complete scan dominates the stochastic searcher and the matcher can be dropped. Figure~\ref{fig:conv_exp1} makes this visible: even at FFE~\mbox{$=0$} the feature-guided methods start 2--3~dB above the PSO baselines---a random draw from the feature pool is already a good match---and FGDS climbs fastest, saturating at \mbox{$K\!\times\!8=320$}~FFEs while the PSO baselines are still improving at the 800-FFE budget and never close the gap.
+The decisive comparison is FG-PSO vs.\ FGDS---the same pool, with and without the inner PSO. FGDS wins on all ten images at fewer evaluations, so within a few-hundred-candidate space a complete scan dominates the stochastic searcher and the matcher can be dropped. Figure~\ref{fig:conv_exp1} makes this visible: at the first recorded evaluation point, the feature-guided methods are already 2--3~dB above the PSO baselines---an early draw from the feature pool is already a good match---and FGDS climbs fastest, saturating at \mbox{$K\!\times\!8=320$}~FFEs while the PSO baselines are still improving at the 800-FFE budget and never close the gap.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{images/convergence_average_exp1.png}
-    \caption{E1 convergence averaged over the ten~images (5~runs each; \mbox{$\pm1\sigma$} bands). The feature-guided methods start far above the PSO baselines; FGDS saturates at 320~FFEs and remains the highest.}
+    \caption{E1 convergence averaged over the ten~images (5~runs each; \mbox{$\pm1\sigma$} bands). At the first recorded evaluation point, the feature-guided methods are already above the PSO baselines; FGDS saturates at 320~FFEs and remains the highest.}
     \label{fig:conv_exp1}
 \end{figure}
 
@@ -457,24 +457,48 @@ FGDS-80 vs.\ Random-80   & +3.25 & 55 & \mbox{$<0.01$} \\
 With \mbox{$n\!=\!10$} paired images and FGDS winning every pair, each test attains \mbox{$W^+\!=\!55$}, \mbox{$W^-\!=\!0$}, and exact one-sided \mbox{$p=1/2^{10}=0.00098$} (Table~\ref{tab:wilcoxon}). Every claim in the paper---superiority over each PSO variant, the positive GA gain, and the advantage over a random pool---is statistically significant.
 
 \subsection{Visual quality}
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
-    \begin{minipage}{0.48\columnwidth}
+    \begin{minipage}{0.148\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{images/0030_original.png}
-        \centerline{\footnotesize (a) Original}
+        \includegraphics[width=\linewidth]{images/0007_original.png}\\[-1pt]
+        {\scriptsize 0007 original}
     \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\columnwidth}
+    \hspace{0.004\textwidth}
+    \begin{minipage}{0.148\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}
-        \centerline{\footnotesize (b) FGDS+GA}
+        \includegraphics[width=\linewidth]{images/0007_fgds_ga_reconstructed.png}\\[-1pt]
+        {\scriptsize 0007 FGDS+GA}
     \end{minipage}
-    \caption{Reconstruction on image~0030. (a)~Original image. (b)~Reconstructed image using FGDS+GA with \mbox{$K = 80$} (32.73~dB). FGDS preserves ridge structure, snow boundaries, and cloud gradients under the common FIC code structure.}
+    \hspace{0.008\textwidth}
+    \begin{minipage}{0.148\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0030_original.png}\\[-1pt]
+        {\scriptsize 0030 original}
+    \end{minipage}
+    \hspace{0.004\textwidth}
+    \begin{minipage}{0.148\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}\\[-1pt]
+        {\scriptsize 0030 FGDS+GA}
+    \end{minipage}
+    \hspace{0.008\textwidth}
+    \begin{minipage}{0.148\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0060_original.png}\\[-1pt]
+        {\scriptsize 0060 original}
+    \end{minipage}
+    \hspace{0.004\textwidth}
+    \begin{minipage}{0.148\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0060_fgds_ga_reconstructed.png}\\[-1pt]
+        {\scriptsize 0060 FGDS+GA}
+    \end{minipage}
+    \caption{Visual comparison of original images and FGDS+GA reconstructions with \mbox{$K = 80$}. The reconstructed PSNRs are 27.98~dB (0007), 32.73~dB (0030), and 31.19~dB (0060).}
     \label{fig:visual}
-\end{figure}
+\end{figure*}
 
-Figure~\ref{fig:visual} shows a representative reconstruction: at 32.73~dB the dominant ridge, boundary, and gradient structure is preserved under the common FIC code structure.
+Figure~\ref{fig:visual} shows representative reconstructions. Across the three examples, FGDS+GA preserves the dominant spatial structures and smooth regions under the common FIC code structure.
 
 
 %% ================================================================
