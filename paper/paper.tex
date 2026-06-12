@@ -25,34 +25,34 @@
 \title{Feature-Guided Domain Selection for\\ High-Resolution Fractal Image Compression}
 
 \author{
-    \IEEEauthorblockN{Zhen-Rong Wu}
-    \IEEEauthorblockA{\textit{Dept. of Computer Science}\\
-    \textit{and Information Engineering}\\{National Taiwan Normal University} \\
-    41247012S@ntnu.edu.tw}
-    \and
-    \IEEEauthorblockN{Darrin Lin}
-    \IEEEauthorblockA{\textit{Dept. of Computer Science}\\
-    \textit{and Information Engineering}\\{National Taiwan Normal University} \\
-    41247022S@ntnu.edu.tw}
-    \and
-    \IEEEauthorblockN{Liang-Yun Ko}
-    \IEEEauthorblockA{\textit{Dept. of Computer Science}\\
-    \textit{and Information Engineering} \\{National Taiwan Normal University} \\
-    41247066S@ntnu.edu.tw}
+\IEEEauthorblockN{Zhen-Rong Wu}
+\IEEEauthorblockA{\textit{Dept. of Computer Science}\\
+\textit{and Information Engineering}\\{National Taiwan Normal University} \\
+41247012S@ntnu.edu.tw}
+\and
+\IEEEauthorblockN{Darrin Lin}
+\IEEEauthorblockA{\textit{Dept. of Computer Science}\\
+\textit{and Information Engineering}\\{National Taiwan Normal University} \\
+41247022S@ntnu.edu.tw}
+\and
+\IEEEauthorblockN{Liang-Yun Ko}
+\IEEEauthorblockA{\textit{Dept. of Computer Science}\\
+\textit{and Information Engineering} \\{National Taiwan Normal University} \\
+41247066S@ntnu.edu.tw}
 }
 
 \maketitle
 
 \begin{abstract}
-Fractal Image Compression (FIC) offers fast, resolution-independent decoding, but its encoder becomes prohibitively expensive at high resolutions because each range block must search a large domain pool. Although metaheuristics such as Particle Swarm Optimization (PSO) are often used to reduce this cost, our experiments on \mbox{$1024\times1024$} images show that the main bottleneck is not the PSO update rule itself, but the quality of the candidate space being searched. A small swarm samples only a vanishing fraction of the domain--isometry space and tends to converge before it reaches structurally suitable domains.
+    Fractal Image Compression (FIC) offers fast, resolution-independent decoding, but its encoder becomes prohibitively expensive at high resolutions because each range block must search a large domain pool. Although metaheuristics such as Particle Swarm Optimization (PSO) are often used to reduce this cost, our experiments on \mbox{$1024\times1024$} images show that the main bottleneck is not the PSO update rule itself, but the quality of the candidate space being searched. A small swarm samples only a vanishing fraction of the domain--isometry space and tends to converge before it reaches structurally suitable domains.
 
-To address this, we propose Feature-Guided Domain Selection (FGDS), which shifts the heuristic from per-block optimization to domain-block selection. Each block is mapped to an 8-dimensional feature descriptor designed to be robust to geometric isometries. A KD-Tree retrieves the \mbox{$K=80$} most similar domains per range block, allowing a small exhaustive search that eliminates the need for an inner PSO. A Genetic Algorithm, trained once on a single held-out image, learns feature weights that transfer to unseen test images.
+    To address this, we propose Feature-Guided Domain Selection (FGDS), which shifts the heuristic from per-block optimization to domain-block selection. Each block is mapped to an 8-dimensional feature descriptor designed to be robust to geometric isometries. A KD-Tree retrieves the \mbox{$K=80$} most similar domains per range block, allowing a small exhaustive search that eliminates the need for an inner PSO. A Genetic Algorithm, trained once on a single held-out image, learns feature weights that transfer to unseen test images.
 
-Using a KD-Tree cuts pool construction from 179.6~s to 0.13~s (about a 1370-fold speedup). The development ablation at \mbox{$K\!=\!40$} shows that exhaustive search inside the feature-guided pool improves PSNR by 1.26--3.22~dB over PSO while reducing the reported search-loop time by about 4 times. The final \mbox{$K\!=\!80$} KD-Tree+GA setting improves PSNR by 1.66--3.85~dB over PSO and remains about 2 times faster when preprocessing is included. All improvements are statistically significant under the Wilcoxon signed-rank test ($p < 0.01$, $n = 10$). Finally, a random-pool control isolates a +3.25~dB gain, confirming that the improvement stems from feature-guided selection rather than from search-space reduction alone.
+    Using a KD-Tree cuts pool construction from 179.6~s to 0.13~s (about a 1370-fold speedup). The development ablation at \mbox{$K\!=\!40$} shows that exhaustive search inside the feature-guided pool improves PSNR by 1.26--3.22~dB over PSO while reducing the reported search-loop time by about 4 times. The final \mbox{$K\!=\!80$} KD-Tree+GA setting improves PSNR by 1.66--3.85~dB over PSO and remains about 2 times faster when preprocessing is included. All improvements are statistically significant under the Wilcoxon signed-rank test ($p < 0.01$, $n = 10$). Finally, a random-pool control isolates a +3.25~dB gain, confirming that the improvement stems from feature-guided selection rather than from search-space reduction alone.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Fractal image compression, feature-guided search, domain block selection, KD-Tree, genetic algorithm, robust block features, metaheuristics
+    Fractal image compression, feature-guided search, domain block selection, KD-Tree, genetic algorithm, robust block features, metaheuristics
 \end{IEEEkeywords}
 
 %% ================================================================
@@ -89,20 +89,20 @@ FIC originates from the theory of Iterated Function Systems (IFS)~\cite{Barnsley
 
 A grayscale image of size \mbox{$N\times N$} is partitioned into a range pool~\mbox{$\mathcal{R}$} of \mbox{$M=(N/L)^2$} non-overlapping \mbox{$L\times L$} range blocks and a domain pool~\mbox{$\mathcal{D}$} of \mbox{$P=(\lfloor(N-2L)/\delta\rfloor+1)^2$} overlapping \mbox{$2L\times2L$} domain blocks taken with stride~\mbox{$\delta$}. Each domain block is downsampled to \mbox{$L\times L$} by \mbox{$2\times2$} average pooling. For a range block~\mbox{$v$} and a domain block~\mbox{$u$}, the encoder seeks a contractive affine map combining one of eight Dihedral isometries~\mbox{$T_k$} (\mbox{$k\in\{0,\dots,7\}$}) with a contrast~\mbox{$s$} and brightness~\mbox{$o$}:
 \begin{equation}
-\hat{v} = s\cdot T_k(\mathrm{downsample}(u)) + o.
-\label{eq:affine}
+    \hat{v} = s\cdot T_k(\mathrm{downsample}(u)) + o.
+    \label{eq:affine}
 \end{equation}
 For a fixed \mbox{$(u,k)$}, the parameters \mbox{$s$} and \mbox{$o$} that minimize the mean squared error (MSE),
 \begin{equation}
-\mathrm{MSE}(v,\hat{v}) = \frac{1}{L^2}\sum_{i,j}\bigl(v(i,j)-\hat{v}(i,j)\bigr)^2,
-\label{eq:mse}
+    \mathrm{MSE}(v,\hat{v}) = \frac{1}{L^2}\sum_{i,j}\bigl(v(i,j)-\hat{v}(i,j)\bigr)^2,
+    \label{eq:mse}
 \end{equation}
 are given by the closed-form least-squares solution:
 \begin{equation}
-s = \frac{L^2\sum v u_k - (\sum v)(\sum u_k)}{L^2\sum u_k^2 - (\sum u_k)^2},
-\quad
-o = \frac{\sum v - s\sum u_k}{L^2},
-\label{eq:so}
+    s = \frac{L^2\sum v u_k - (\sum v)(\sum u_k)}{L^2\sum u_k^2 - (\sum u_k)^2},
+    \quad
+    o = \frac{\sum v - s\sum u_k}{L^2},
+    \label{eq:so}
 \end{equation}
 where \mbox{$u_k=T_k(\mathrm{downsample}(u))$}. The best isometry is
 \mbox{$k^*=\arg\min_k \mathrm{MSE}(v,\,s_k u_k+o_k)$}, and contractivity \mbox{$|s|<1$} is enforced for decode     convergence. One evaluation of (\ref{eq:mse})--(\ref{eq:so}) for a single \mbox{$(u,k)$} pair is defined as a \emph{Fitness Function Evaluation (FFE)}; it serves as the unit of search cost shared by all compared methods.
@@ -127,21 +127,21 @@ This section describes the compared baseline methods in the logical order of the
 \subsection{Standard PSO (baseline)}
 Following~\cite{PSOFIC}, each particle is a continuous vector \mbox{$\mathbf{X}_j=[d_j,k_j]$} decoded to a (domain index, isometry) pair by rounding and clamping. The swarm updates
 \begin{align}
-\mathbf{V}_j(t\!+\!1) &= \omega\mathbf{V}_j(t) + c_1 r_1(\mathbf{P}_{\text{best},j}\!-\!\mathbf{X}_j) + c_2 r_2(\mathbf{G}_{\text{best}}\!-\!\mathbf{X}_j),\\
-\mathbf{X}_j(t\!+\!1) &= \mathbf{X}_j(t) + \mathbf{V}_j(t\!+\!1),
+    \mathbf{V}_j(t\!+\!1) & = \omega\mathbf{V}_j(t) + c_1 r_1(\mathbf{P}_{\text{best},j}\!-\!\mathbf{X}_j) + c_2 r_2(\mathbf{G}_{\text{best}}\!-\!\mathbf{X}_j), \\
+    \mathbf{X}_j(t\!+\!1) & = \mathbf{X}_j(t) + \mathbf{V}_j(t\!+\!1),
 \end{align}
 with swarm size \mbox{$N_p\!=\!40$}, inertia \mbox{$\omega\!=\!0.9$}, acceleration coefficients \mbox{$c_1\!=\!c_2\!=\!2.0$}, uniform random \mbox{$r_1,r_2\in[0,1]$}, and velocity clamped to \mbox{$\pm v_{\max}$}. The search domain is \mbox{$[0,P\!-\!1]\times[0,7]$}.
 
 \subsection{Memetic PSO}
 Memetic PSO applies deterministic local search after periodic PSO updates. To limit overhead, LS is applied only to the top 20\%~of particles ranked by fitness, followed by one terminal LS pass on the final global best. For one range block, write a candidate as \mbox{$x=(d,k)$}, where \mbox{$d$} indexes a domain block and \mbox{$k\in\mathcal{I}=\{0,\ldots,7\}$} is an isometry. Let \mbox{$f(d,k)$} denote the resulting block-wise MSE after fitting \mbox{$s,o$}; lower is better, so LS accepts only non-worsening moves. \textbf{Isometry-LS} fixes \mbox{$d$} and tests candidate isometries \mbox{$k'\in\mathcal{I}$}:
 \begin{equation}
-k^*=\arg\min_{k'\in\mathcal{I}} f(d,k').
-\label{eq:isometry_ls}
+    k^*=\arg\min_{k'\in\mathcal{I}} f(d,k').
+    \label{eq:isometry_ls}
 \end{equation}
 Since \mbox{$(d,k)$} is already evaluated, only the other seven isometries are new (\mbox{$\le7$}~FFEs). \textbf{Spatial-LS} then fixes \mbox{$k^*$} and searches the grid-neighbors \mbox{$\mathcal{N}_8(d)$} of \mbox{$d$}:
 \begin{equation}
-d^*=\arg\min_{d'\in\{d\}\cup\mathcal{N}_8(d)} f(d',k^*),
-\label{eq:spatial_ls}
+    d^*=\arg\min_{d'\in\{d\}\cup\mathcal{N}_8(d)} f(d',k^*),
+    \label{eq:spatial_ls}
 \end{equation}
 again at most eight new evaluations (fewer on boundaries). All LS evaluations count against the FFE~budget. This is the first finding: local search reliably raises PSNR but costs time~(Section~\ref{sec:exp1}).
 
@@ -159,44 +159,44 @@ FG-PSO raises an obvious question: once the pool is reduced to only \mbox{$K\!=\
 
 FGDS replaces metaheuristic block matching with feature-guided block selection followed by a small exhaustive search. The final pipeline is
 \[
-\text{Block}\to\text{Feature Extraction}\to\text{Weighted Feature Space}
+    \text{Block}\to\text{Feature Extraction}\to\text{Weighted Feature Space}
 \]
 \[
-\to\text{KD-Tree NN}\to\text{Candidate Pool}\to\text{Exhaustive Search}.
+    \to\text{KD-Tree NN}\to\text{Candidate Pool}\to\text{Exhaustive Search}.
 \]
 An offline Genetic Algorithm (Section~\ref{sec:ga_weights}) learns the feature weights once and is not part of per-image encoding.
 
 \begin{algorithm}[t]
-\caption{FGDS Encoding Pipeline}
-\label{alg:fgds}
-\begin{algorithmic}[1]
-\REQUIRE Image \mbox{$I$} (\mbox{$N\times N$}); range size \mbox{$L$}; stride \mbox{$\delta$}; pool size \mbox{$K$}; weights \mbox{$\mathbf{w}\in\mathbb{R}^8$}
-\SYMBOLS \mbox{$\mathbf f_R,\mathbf f_D$}: range/domain feature matrices; \mbox{$\boldsymbol\mu_D,\boldsymbol\sigma_D$}: domain-feature mean/std.; \mbox{$\hat{\mathbf f}$}: normalized feature; \mbox{$\hat{\mathbf f}_D,\hat{\mathbf f}_{R,i}$}: weighted domain features and the \mbox{$i$}-th weighted range feature
-\ENSURE Fractal codes \mbox{$\mathcal{C}$}
-\STATE \textbf{// Stage 1: Feature Extraction}
-\STATE \mbox{$\mathbf{f}_R\leftarrow\textsc{ExtractFeatures}(\text{range blocks})$} \COMMENT{\mbox{$(M,8)$}}
-\STATE \mbox{$\mathbf{f}_D\leftarrow\textsc{ExtractFeatures}(\text{domain blocks})$} \COMMENT{\mbox{$(P,8)$}}
-\STATE \mbox{$z$}-score normalize \mbox{$\mathbf{f}_R,\mathbf{f}_D$} using \mbox{$(\boldsymbol{\mu}_D,\boldsymbol{\sigma}_D)$}
-\STATE Apply weights: \mbox{$\hat{\mathbf{f}}\leftarrow\hat{\mathbf{f}}\odot\mathbf{w}$} \COMMENT{element-wise}
-\STATE \textbf{// Stage 2: KD-Tree Candidate Pool}
-\STATE Build KD-Tree \mbox{$\mathcal{T}$} from \mbox{$\hat{\mathbf{f}}_D$}
-\FOR{each range block \mbox{$v_i$}}
-    \STATE \mbox{$\mathcal{P}_i\leftarrow\mathcal{T}.\text{query}(\hat{\mathbf{f}}_{R,i},K)$} \COMMENT{top-\mbox{$K$} neighbors}
-\ENDFOR
-\STATE \textbf{// Stage 3: Exhaustive Search in Reduced Space}
-\FOR{each range block \mbox{$v_i$}}
-    \STATE \mbox{$(d^*,k^*,s^*,o^*)\leftarrow\arg\min_{j\in\mathcal{P}_i,k}\mathrm{MSE}(v_i, sT_k(u_j)\!+\!o)$}
-    \STATE \mbox{$\mathcal{C}_i\leftarrow(d^*,k^*,s^*,o^*)$}
-\ENDFOR
-\RETURN \mbox{$\mathcal{C}$}
-\end{algorithmic}
+    \caption{FGDS Encoding Pipeline}
+    \label{alg:fgds}
+    \begin{algorithmic}[1]
+        \REQUIRE Image \mbox{$I$} (\mbox{$N\times N$}); range size \mbox{$L$}; stride \mbox{$\delta$}; pool size \mbox{$K$}; weights \mbox{$\mathbf{w}\in\mathbb{R}^8$}
+        \SYMBOLS \mbox{$\mathbf f_R,\mathbf f_D$}: range/domain feature matrices; \mbox{$\boldsymbol\mu_D,\boldsymbol\sigma_D$}: domain-feature mean/std.; \mbox{$\hat{\mathbf f}$}: normalized feature; \mbox{$\hat{\mathbf f}_D,\hat{\mathbf f}_{R,i}$}: weighted domain features and the \mbox{$i$}-th weighted range feature
+        \ENSURE Fractal codes \mbox{$\mathcal{C}$}
+        \STATE \textbf{// Stage 1: Feature Extraction}
+        \STATE \mbox{$\mathbf{f}_R\leftarrow\textsc{ExtractFeatures}(\text{range blocks})$} \COMMENT{\mbox{$(M,8)$}}
+        \STATE \mbox{$\mathbf{f}_D\leftarrow\textsc{ExtractFeatures}(\text{domain blocks})$} \COMMENT{\mbox{$(P,8)$}}
+        \STATE \mbox{$z$}-score normalize \mbox{$\mathbf{f}_R,\mathbf{f}_D$} using \mbox{$(\boldsymbol{\mu}_D,\boldsymbol{\sigma}_D)$}
+        \STATE Apply weights: \mbox{$\hat{\mathbf{f}}\leftarrow\hat{\mathbf{f}}\odot\mathbf{w}$} \COMMENT{element-wise}
+        \STATE \textbf{// Stage 2: KD-Tree Candidate Pool}
+        \STATE Build KD-Tree \mbox{$\mathcal{T}$} from \mbox{$\hat{\mathbf{f}}_D$}
+        \FOR{each range block \mbox{$v_i$}}
+        \STATE \mbox{$\mathcal{P}_i\leftarrow\mathcal{T}.\text{query}(\hat{\mathbf{f}}_{R,i},K)$} \COMMENT{top-\mbox{$K$} neighbors}
+        \ENDFOR
+        \STATE \textbf{// Stage 3: Exhaustive Search in Reduced Space}
+        \FOR{each range block \mbox{$v_i$}}
+        \STATE \mbox{$(d^*,k^*,s^*,o^*)\leftarrow\arg\min_{j\in\mathcal{P}_i,k}\mathrm{MSE}(v_i, sT_k(u_j)\!+\!o)$}
+        \STATE \mbox{$\mathcal{C}_i\leftarrow(d^*,k^*,s^*,o^*)$}
+        \ENDFOR
+        \RETURN \mbox{$\mathcal{C}$}
+    \end{algorithmic}
 \end{algorithm}
 
 \subsection{Stage 1: Isometry-robust features}
 The descriptor must (R1) discriminate structurally dissimilar blocks and (R2) be robust to the eight Dihedral isometries, since a domain under any of these transforms is the same candidate and the isometry is searched separately in Stage~3. For a block \mbox{$b$} of size \mbox{$L\times L$}, the feature vector is defined as
 \begin{equation}
-\mathbf{f}(b)=\bigl[\mu,\ \sigma,\ \bar g_h,\ \bar g_v,\ \hat q_1,\ \hat q_2,\ \hat q_3,\ \hat q_4\bigr]\in\mathbb{R}^8.
-\label{eq:features}
+    \mathbf{f}(b)=\bigl[\mu,\ \sigma,\ \bar g_h,\ \bar g_v,\ \hat q_1,\ \hat q_2,\ \hat q_3,\ \hat q_4\bigr]\in\mathbb{R}^8.
+    \label{eq:features}
 \end{equation}
 Here \mbox{$\mu$} and \mbox{$\sigma$} are the block mean and standard deviation, both exactly invariant to the eight isometries. \mbox{$\bar g_h=\mathrm{mean}|b(i,j\!+\!1)\!-\!b(i,j)|$} and \mbox{$\bar g_v=\mathrm{mean}|b(i\!+\!1,j)\!-\!b(i,j)|$} are mean gradient magnitudes capturing texture; they are invariant under horizontal and vertical flips and swap under \mbox{$90^\circ$} rotation, so they are treated as quasi-invariant directional texture cues rather than strict invariants. The \mbox{$\hat q_1\!\le\!\dots\!\le\!\hat q_4$} are the four quadrant means \emph{sorted ascending}: rotations and reflections only permute quadrants, so sorting makes them fully isometry-invariant. Each feature costs \mbox{$O(L^2)$}.
 
@@ -205,8 +205,8 @@ Features are \mbox{$z$}-score normalized with domain-pool statistics, \mbox{$\ha
 \subsection{Stage 2: KD-Tree candidate selection}
 For each range block \mbox{$v_i$}, the \mbox{$K$} nearest domain blocks in the weighted feature space are determined by
 \begin{equation}
-\mathcal{P}_i=\underset{|S|=K}{\arg\min}\sum_{j\in S}\bigl\|\mathbf w\odot(\hat{\mathbf f}_{R,i}-\hat{\mathbf f}_{D,j})\bigr\|^2 .
-\label{eq:knn}
+    \mathcal{P}_i=\underset{|S|=K}{\arg\min}\sum_{j\in S}\bigl\|\mathbf w\odot(\hat{\mathbf f}_{R,i}-\hat{\mathbf f}_{D,j})\bigr\|^2 .
+    \label{eq:knn}
 \end{equation}
 Pre-multiplying both feature sets by \mbox{$\mathbf w$} turns this into plain Euclidean nearest-neighbor search, so a standard KD-Tree~\cite{bentley1975multidimensional} applies. Over the \mbox{$F\!=\!8$}~feature dimensions, a naive pairwise scan costs \mbox{$O(MPF)$} (here approximately 180~s), whereas the KD-Tree costs \mbox{$O(PF\log P)$}~to build and \mbox{$O(MK\log P)$}~to query, completing in under 0.5~s in practice. With \mbox{$K\!=\!80$}~the per-range space shrinks from \mbox{$P\!\times\!8=520{,}200$} to \mbox{$640$}~candidates, a reduction of over 800-fold. Since the descriptor dimension is only \mbox{$F\!=\!8$}, KD-Tree search remains effective in our setting, as confirmed by the measured candidate-selection~time.
 
@@ -222,33 +222,33 @@ Equal weighting (\mbox{$\mathbf w=\mathbf 1$}) assumes all eight dimensions matt
 \paragraph*{Fitness} An individual is a weight vector \mbox{$\mathbf w$}. To evaluate it, weighted feature extraction, KD-Tree query, and exhaustive search are run on a random 2\%~sample of range blocks (\mbox{$\approx$}1{,}300~blocks for \mbox{$1024^2$}), returning the average MSE; the fitness is defined as \mbox{$-\mathrm{avg\,MSE}$}. Raw features, domain statistics, and isometry tables are precomputed once, so each evaluation only re-weights, rebuilds the tree, and scans the sample.
 
 \begin{algorithm}[t]
-\caption{GA-Based Feature-Weight Optimization}
-\label{alg:ga}
-\begin{algorithmic}[1]
-\REQUIRE Training image \mbox{$I$}; population \mbox{$N_{\text{pop}}$}; generations \mbox{$G$}; sample ratio \mbox{$\rho$}
-\SYMBOLS \mbox{$\mathbf f_R,\mathbf f_D$}: range/domain feature matrices; \mbox{$\mathcal S$}: sampled range-block indices; \mbox{$\mathbf w_i$}: weight vector of individual \mbox{$i$}; \mbox{$f(\mathbf w)$}: fitness (negative mean sampled MSE)
-\ENSURE Optimized weights \mbox{$\mathbf w^*$}
-\STATE Precompute blocks, features \mbox{$\mathbf f_R,\mathbf f_D$}, isometries
-\STATE Sample \mbox{$\rho M$} range-block indices \mbox{$\mathcal{S}$}
-\STATE \mbox{$\mathbf w_0\!\leftarrow\!\mathbf 1$};\quad \mbox{$\mathbf w_{1..N_{\text{pop}}-1}\!\sim\! U(0.3,2.5)^8$}
-\FOR{\mbox{$g=0$} to \mbox{$G$}}
-    \STATE Evaluate \mbox{$f(\mathbf w_i)$} on \mbox{$\mathcal{S}$} for all \mbox{$i$}
-    \STATE Copy top-2 elites to next generation
-    \FOR{each remaining slot}
+    \caption{GA-Based Feature-Weight Optimization}
+    \label{alg:ga}
+    \begin{algorithmic}[1]
+        \REQUIRE Training image \mbox{$I$}; population \mbox{$N_{\text{pop}}$}; generations \mbox{$G$}; sample ratio \mbox{$\rho$}
+        \SYMBOLS \mbox{$\mathbf f_R,\mathbf f_D$}: range/domain feature matrices; \mbox{$\mathcal S$}: sampled range-block indices; \mbox{$\mathbf w_i$}: weight vector of individual \mbox{$i$}; \mbox{$f(\mathbf w)$}: fitness (negative mean sampled MSE)
+        \ENSURE Optimized weights \mbox{$\mathbf w^*$}
+        \STATE Precompute blocks, features \mbox{$\mathbf f_R,\mathbf f_D$}, isometries
+        \STATE Sample \mbox{$\rho M$} range-block indices \mbox{$\mathcal{S}$}
+        \STATE \mbox{$\mathbf w_0\!\leftarrow\!\mathbf 1$};\quad \mbox{$\mathbf w_{1..N_{\text{pop}}-1}\!\sim\! U(0.3,2.5)^8$}
+        \FOR{\mbox{$g=0$} to \mbox{$G$}}
+        \STATE Evaluate \mbox{$f(\mathbf w_i)$} on \mbox{$\mathcal{S}$} for all \mbox{$i$}
+        \STATE Copy top-2 elites to next generation
+        \FOR{each remaining slot}
         \STATE parents \mbox{$\leftarrow$} tournament selection (size~3)
         \STATE child \mbox{$\leftarrow$} BLX-\mbox{$\alpha$} crossover (\mbox{$\alpha\!=\!0.5$}, rate 0.8)~\cite{eshelman1993real}
         \STATE child \mbox{$\leftarrow$} Gaussian mutation (\mbox{$\sigma\!=\!0.25$}, rate 0.4)
         \STATE child \mbox{$\leftarrow\max(\text{child},0.05)$}
-    \ENDFOR
-\ENDFOR
-\RETURN best \mbox{$\mathbf w$} over all generations
-\end{algorithmic}
+        \ENDFOR
+        \ENDFOR
+        \RETURN best \mbox{$\mathbf w$} over all generations
+    \end{algorithmic}
 \end{algorithm}
 
 \paragraph*{Settings and result} The operators are as listed in Algorithm~\ref{alg:ga} (tournament selection of size~3, BLX-\mbox{$\alpha$} crossover with \mbox{$\alpha\!=\!0.5$}~\cite{eshelman1993real}, Gaussian mutation, two elites preserved), with \mbox{$N_{\text{pop}}\!=\!16$}, \mbox{$G\!=\!10$}, \mbox{$\rho\!=\!0.02$}, and \mbox{$K\!=\!80$}, trained on the held-out image~0003. The sampled MSE improves from 72.82 (equal weights) to 71.77 over ten~generations, and the search converges to
 \begin{equation}
-\mathbf{w}^* = [\,0.18,\ 1.36,\ 0.97,\ 0.96,\ 1.29,\ 1.04,\ 1.00,\ 0.75\,]
-\label{eq:learned_w}
+    \mathbf{w}^* = [\,0.18,\ 1.36,\ 0.97,\ 0.96,\ 1.29,\ 1.04,\ 1.00,\ 0.75\,]
+    \label{eq:learned_w}
 \end{equation}
 for \mbox{$[\mu,\sigma,\bar g_h,\bar g_v,\hat q_1,\hat q_2,\hat q_3,\hat q_4]$}. The learned vector is consistent with the model-structure argument below: the mean \mbox{$\mu$} receives by far the smallest weight (0.18) and the standard deviation \mbox{$\sigma$} the largest (1.36)---a 7.6-fold difference---matching the ``down-weight \mbox{$\mu$}---up-weight \mbox{$\sigma$}'' prediction. The gradient and quadrant features stay near 1.0, consistent with their secondary role at \mbox{$L\!=\!4.$}
 
@@ -262,18 +262,18 @@ The key point---``\mbox{$\sigma$} drives the multiplicative contrast, \mbox{$\mu
 
 \subsection{Computational complexity}
 \begin{table}[t]
-\centering
-\caption{Per-range search cost and preprocessing. Symbols: \mbox{$P$}~domain blocks, \mbox{$M$}~range blocks, \mbox{$L$}~range size, \mbox{$K$}~pool size, \mbox{$F\!=\!8$}~feature dimensions, \mbox{$B$}~per-block FFE budget.}
-\label{tab:complexity}
-\begin{tabular}{lll}
-\toprule
-\textbf{Method} & \textbf{Per-range cost} & \textbf{Preprocessing} \\
-\midrule
-Full search & \mbox{$O(P\cdot 8)$} & \mbox{$O(P L^2)$} \\
-PSO (budget \mbox{$B$}) & \mbox{$O(B)$} & \mbox{$O(P L^2)$} \\
-FGDS (proposed) & \mbox{$O(K\cdot 8)$} & $\begin{array}{@{}l@{}}O((M+P)L^2 + PF\log P\\{}+ MK\log P)\end{array}$ \\
-\bottomrule
-\end{tabular}
+    \centering
+    \caption{Per-range search cost and preprocessing. Symbols: \mbox{$P$}~domain blocks, \mbox{$M$}~range blocks, \mbox{$L$}~range size, \mbox{$K$}~pool size, \mbox{$F\!=\!8$}~feature dimensions, \mbox{$B$}~per-block FFE budget.}
+    \label{tab:complexity}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Method}         & \textbf{Per-range cost} & \textbf{Preprocessing}                                                                        \\
+        \midrule
+        Full search             & \mbox{$O(P\cdot 8)$}    & \mbox{$O(P L^2)$}                                                                             \\
+        PSO (budget \mbox{$B$}) & \mbox{$O(B)$}           & \mbox{$O(P L^2)$}                                                                             \\
+        FGDS (proposed)         & \mbox{$O(K\cdot 8)$}    & $\begin{array}{@{}l@{}}O((M+P)L^2 + PF\log P\\{}+ MK\log P)\end{array}$ \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 Table~\ref{tab:complexity} summarizes the costs. FGDS trades a sub-second KD-Tree preprocessing step for a per-range cost of only \mbox{$K\!\times\!8$}~FFEs. A full search at \mbox{$1024^2$} would require \mbox{$M\!P\!\times\!8\approx 3.4\times10^{10}$}~FFEs per image; FGDS at \mbox{$K\!=\!80$} uses \mbox{$M\!\times\!640\approx 4.2\times10^7$}, a reduction of over \mbox{$800\times$}, while the GA cost is one-time and offline.
 
@@ -309,29 +309,29 @@ E1 fixes \mbox{$K\!=\!40$} because that was the pool size used by FG-PSO in the 
 \label{sec:exp1}
 
 \begin{table*}[t]
-\centering
-\caption{E1: PSO baselines vs.\ FGDS (feature-guided exhaustive, \mbox{$K\!=\!40$}) on ten \mbox{$1024\times1024$}~images. Time is the wall-clock of a \emph{single} encode; for the stochastic methods both Time and PSNR are the mean over 5~runs (PSNR std \mbox{$\le 0.03$}~dB), not the cumulative cost of those runs. FGDS is deterministic. Best per image in bold.}
-\label{tab:results}
-\begin{tabular}{l rrrr rrrr}
-\toprule
-& \multicolumn{2}{c}{\textbf{PSO}} & \multicolumn{2}{c}{\textbf{Memetic PSO}} & \multicolumn{2}{c}{\textbf{FG-PSO} (\mbox{$K\!=\!40$})} & \multicolumn{2}{c}{\textbf{FGDS} (\mbox{$K\!=\!40$})} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
-\textbf{Image} & Time(s) & PSNR & Time(s) & PSNR & Time(s) & PSNR & Time(s) & PSNR \\
-\midrule
-0002 & 1432.1 & 28.73 & 1299.3 & 28.87 & 1286.4 & 29.58 & \textbf{364.5} & \textbf{30.00} \\
-0007 & 1429.8 & 26.32 & 1301.7 & 26.45 & 1289.1 & 27.14 & \textbf{363.8} & \textbf{27.58} \\
-0029 & 1441.3 & 23.47 & 1301.2 & 23.69 & 1285.3 & 24.89 & \textbf{365.6} & \textbf{25.43} \\
-0030 & 1421.3 & 30.52 & 1302.2 & 30.84 & 1284.8 & 31.71 & \textbf{358.5} & \textbf{32.26} \\
-0032 & 1412.5 & 33.78 & 1308.4 & 34.03 & 1252.5 & 35.00 & \textbf{354.4} & \textbf{35.47} \\
-0037 & 1414.3 & 32.17 & 1345.8 & 32.65 & 1250.6 & 34.07 & \textbf{354.5} & \textbf{34.66} \\
-0043 & 1412.0 & 27.70 & 1343.8 & 28.20 & 1249.8 & 30.26 & \textbf{354.3} & \textbf{30.92} \\
-0049 & 1412.9 & 29.96 & 1337.2 & 30.12 & 1249.7 & 31.23 & \textbf{354.8} & \textbf{31.71} \\
-0051 & 1411.1 & 27.78 & 1302.2 & 28.04 & 1270.9 & 28.86 & \textbf{354.9} & \textbf{29.31} \\
-0060 & 1410.7 & 28.31 & 1330.0 & 28.60 & 1268.7 & 29.99 & \textbf{354.8} & \textbf{30.68} \\
-\midrule
-\textbf{Avg} & 1419.8 & 28.87 & 1317.2 & 29.15 & 1268.8 & 30.27 & \textbf{358.0} & \textbf{30.80} \\
-\bottomrule
-\end{tabular}
+    \centering
+    \caption{E1: PSO baselines vs.\ FGDS (feature-guided exhaustive, \mbox{$K\!=\!40$}) on ten \mbox{$1024\times1024$}~images. Time is the wall-clock of a \emph{single} encode; for the stochastic methods both Time and PSNR are the mean over 5~runs (PSNR std \mbox{$\le 0.03$}~dB), not the cumulative cost of those runs. FGDS is deterministic. Best per image in bold.}
+    \label{tab:results}
+    \begin{tabular}{l rrrr rrrr}
+        \toprule
+                       & \multicolumn{2}{c}{\textbf{PSO}} & \multicolumn{2}{c}{\textbf{Memetic PSO}} & \multicolumn{2}{c}{\textbf{FG-PSO} (\mbox{$K\!=\!40$})} & \multicolumn{2}{c}{\textbf{FGDS} (\mbox{$K\!=\!40$})}                                                     \\
+        \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+        \textbf{Image} & Time(s)                          & PSNR                                     & Time(s)                                                 & PSNR                                                  & Time(s) & PSNR  & Time(s)        & PSNR           \\
+        \midrule
+        0002           & 1432.1                           & 28.73                                    & 1299.3                                                  & 28.87                                                 & 1286.4  & 29.58 & \textbf{364.5} & \textbf{30.00} \\
+        0007           & 1429.8                           & 26.32                                    & 1301.7                                                  & 26.45                                                 & 1289.1  & 27.14 & \textbf{363.8} & \textbf{27.58} \\
+        0029           & 1441.3                           & 23.47                                    & 1301.2                                                  & 23.69                                                 & 1285.3  & 24.89 & \textbf{365.6} & \textbf{25.43} \\
+        0030           & 1421.3                           & 30.52                                    & 1302.2                                                  & 30.84                                                 & 1284.8  & 31.71 & \textbf{358.5} & \textbf{32.26} \\
+        0032           & 1412.5                           & 33.78                                    & 1308.4                                                  & 34.03                                                 & 1252.5  & 35.00 & \textbf{354.4} & \textbf{35.47} \\
+        0037           & 1414.3                           & 32.17                                    & 1345.8                                                  & 32.65                                                 & 1250.6  & 34.07 & \textbf{354.5} & \textbf{34.66} \\
+        0043           & 1412.0                           & 27.70                                    & 1343.8                                                  & 28.20                                                 & 1249.8  & 30.26 & \textbf{354.3} & \textbf{30.92} \\
+        0049           & 1412.9                           & 29.96                                    & 1337.2                                                  & 30.12                                                 & 1249.7  & 31.23 & \textbf{354.8} & \textbf{31.71} \\
+        0051           & 1411.1                           & 27.78                                    & 1302.2                                                  & 28.04                                                 & 1270.9  & 28.86 & \textbf{354.9} & \textbf{29.31} \\
+        0060           & 1410.7                           & 28.31                                    & 1330.0                                                  & 28.60                                                 & 1268.7  & 29.99 & \textbf{354.8} & \textbf{30.68} \\
+        \midrule
+        \textbf{Avg}   & 1419.8                           & 28.87                                    & 1317.2                                                  & 29.15                                                 & 1268.8  & 30.27 & \textbf{358.0} & \textbf{30.80} \\
+        \bottomrule
+    \end{tabular}
 \end{table*}
 
 Table~\ref{tab:results} traces the full trail. Memetic PSO beats plain PSO on every image (+0.28~dB on average) but the local search adds cost relative to the per-iteration work---confirming that LS helps quality. FG-PSO then improves substantially over memetic PSO (+1.12~dB) by giving the swarm a feature-guided pool to search, confirming that \emph{search-space quality}, not optimizer tuning, is what was missing. Finally, replacing the inner PSO with exhaustive search over the same \mbox{$K\!=\!40$}~pool---FGDS---adds another +0.53~dB while using fewer FFEs (\mbox{$320$}~vs.\ the 800~budget), no randomness, and far less time.
@@ -351,20 +351,20 @@ The decisive comparison is FG-PSO vs.\ FGDS---the same pool, with and without th
 \label{sec:exp2}
 
 \begin{table}[t]
-\centering
-\caption{E2: three FGDS variants at \mbox{$K\!=\!80$}, averaged over ten images. Times in seconds; CandSel = candidate selection. MSE is encoder-side block-matching MSE. PSNR/MSE for pairwise and KD-Tree are identical by construction.}
-\label{tab:exp2}
-\small
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{lrrrrr}
-\toprule
-\textbf{Variant} & \textbf{PSNR} & \textbf{Enc. MSE} & \textbf{FeatExt} & \textbf{CandSel} & \textbf{Encode} \\
-\midrule
-Pairwise        & 31.21 & 56.27 & 7.20 & 179.57 & 697.80 \\
-KD-Tree         & 31.21 & 56.27 & 7.22 & \textbf{0.13} & 692.81 \\
-KD-Tree + GA    & \textbf{31.26} & \textbf{55.60} & 7.22 & 0.12 & 692.10 \\
-\bottomrule
-\end{tabular}
+    \centering
+    \caption{E2: three FGDS variants at \mbox{$K\!=\!80$}, averaged over ten images. Times in seconds; CandSel = candidate selection. MSE is encoder-side block-matching MSE. PSNR/MSE for pairwise and KD-Tree are identical by construction.}
+    \label{tab:exp2}
+    \small
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{lrrrrr}
+        \toprule
+        \textbf{Variant} & \textbf{PSNR}  & \textbf{Enc. MSE} & \textbf{FeatExt} & \textbf{CandSel} & \textbf{Encode} \\
+        \midrule
+        Pairwise         & 31.21          & 56.27             & 7.20             & 179.57           & 697.80          \\
+        KD-Tree          & 31.21          & 56.27             & 7.22             & \textbf{0.13}    & 692.81          \\
+        KD-Tree + GA     & \textbf{31.26} & \textbf{55.60}    & 7.22             & 0.12             & 692.10          \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 
 Two questions are answered in Table~\ref{tab:exp2}.
@@ -385,21 +385,21 @@ Figure~\ref{fig:conv_0030} shows the three variants on image 0030; the curves ar
 \subsection{E3: Choosing the pool size \mbox{$K$}}
 
 \begin{table}[t]
-\centering
-\caption{E3: \mbox{$K$}-sensitivity for KD-Tree FGDS, averaged over ten images. FFE is the effective per-block evaluation count under the 800-FFE protocol; rows with \mbox{$K\!\times\!8\le800$} are full exhaustive searches within the selected pool. MSE is encoder-side block-matching MSE.}
-\label{tab:k_sensitivity}
-\begin{tabular}{rlrrr}
-\toprule
-\mbox{$K$} & \textbf{FFE} & \textbf{PSNR (dB)} & \textbf{Enc. MSE} & \textbf{Total (s)} \\
-\midrule
-5   & 40   & 29.18 & 92.23 & 51.6 \\
-10  & 80   & 29.80 & 79.34 & 95.7 \\
-20  & 160  & 30.33 & 69.68 & 183.6 \\
-40  & 320  & 30.80 & 62.10 & 360.9 \\
-80  & 640  & 31.21 & 56.27 & 712.9 \\
-160 & 800 cap & 31.33 & 54.65 & 884.7 \\
-\bottomrule
-\end{tabular}
+    \centering
+    \caption{E3: \mbox{$K$}-sensitivity for KD-Tree FGDS, averaged over ten images. FFE is the effective per-block evaluation count under the 800-FFE protocol; rows with \mbox{$K\!\times\!8\le800$} are full exhaustive searches within the selected pool. MSE is encoder-side block-matching MSE.}
+    \label{tab:k_sensitivity}
+    \begin{tabular}{rlrrr}
+        \toprule
+        \mbox{$K$} & \textbf{FFE} & \textbf{PSNR (dB)} & \textbf{Enc. MSE} & \textbf{Total (s)} \\
+        \midrule
+        5          & 40           & 29.18              & 92.23             & 51.6               \\
+        10         & 80           & 29.80              & 79.34             & 95.7               \\
+        20         & 160          & 30.33              & 69.68             & 183.6              \\
+        40         & 320          & 30.80              & 62.10             & 360.9              \\
+        80         & 640          & 31.21              & 56.27             & 712.9              \\
+        160        & 800 cap      & 31.33              & 54.65             & 884.7              \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 
 Table~\ref{tab:k_sensitivity} shows diminishing returns. PSNR rises steadily through \mbox{$K\!=\!80$} (31.21~dB). Increasing the candidate pool to \mbox{$K\!=\!160$} under the same 800-FFE cap adds only +0.12~dB while increasing total time by about 1.24-fold, indicating that the top-80 feature neighbors already capture most high-quality domain candidates for each range block. Consequently, \mbox{$K = 80$} is selected as the default quality--time trade-off and used in E2 and E4. Note that even \mbox{$K\!=\!40$} (30.80~dB) already exceeds every PSO baseline in Table~\ref{tab:results} at a fraction of their time, so the choice of \mbox{$K$}~trades quality against speed within a regime that already dominates the metaheuristic methods.
@@ -407,22 +407,22 @@ Table~\ref{tab:k_sensitivity} shows diminishing returns. PSNR rises steadily thr
 \subsection{E4: Is it the features, or just a smaller pool?}
 
 \begin{table}[t]
-\centering
-\caption{E4: feature-guided vs.\ random pool, both \mbox{$K\!=\!80$} exhaustive, identical FFEs. PSNR (dB).}
-\label{tab:random}
-\begin{tabular}{lrrrrr}
-\toprule
-& 0002 & 0007 & 0029 & 0030 & 0032 \\
-\midrule
-Random-80 & 27.97 & 26.00 & 22.75 & 29.60 & 32.78 \\
-FGDS-80   & \textbf{30.35} & \textbf{27.95} & \textbf{25.81} & \textbf{32.69} & \textbf{35.89} \\
-\addlinespace[2pt]
-& 0037 & 0043 & 0049 & 0051 & 0060 \\
-\midrule
-Random-80 & 31.16 & 26.96 & 29.01 & 27.15 & 26.21 \\
-FGDS-80   & \textbf{35.07} & \textbf{31.46} & \textbf{32.09} & \textbf{29.68} & \textbf{31.13} \\
-\bottomrule
-\end{tabular}
+    \centering
+    \caption{E4: feature-guided vs.\ random pool, both \mbox{$K\!=\!80$} exhaustive, identical FFEs. PSNR (dB).}
+    \label{tab:random}
+    \begin{tabular}{lrrrrr}
+        \toprule
+                  & 0002           & 0007           & 0029           & 0030           & 0032           \\
+        \midrule
+        Random-80 & 27.97          & 26.00          & 22.75          & 29.60          & 32.78          \\
+        FGDS-80   & \textbf{30.35} & \textbf{27.95} & \textbf{25.81} & \textbf{32.69} & \textbf{35.89} \\
+        \addlinespace[2pt]
+                  & 0037           & 0043           & 0049           & 0051           & 0060           \\
+        \midrule
+        Random-80 & 31.16          & 26.96          & 29.01          & 27.15          & 26.21          \\
+        FGDS-80   & \textbf{35.07} & \textbf{31.46} & \textbf{32.09} & \textbf{29.68} & \textbf{31.13} \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 
 A natural objection to FGDS is that any small exhaustive search might do well---perhaps the benefit is just the reduced space, not the feature guidance. E4 refutes this directly. The feature-guided pool is replaced with a \emph{random} pool of the same size (\mbox{$K\!=\!80$})~and the identical exhaustive search is executed; the only difference is how the 80~domains are chosen. As Table~\ref{tab:random} and Fig.~\ref{fig:conv_random} show, FGDS beats the random pool on every image, by 1.95~to~4.92~dB (average~+3.25~dB: 31.21~vs.~27.96~dB; Wilcoxon \mbox{$p\!<\!0.01$}). A same-size random pool is therefore far from sufficient---the quality lives in the feature-guided \emph{selection}. This is the empirical core of the paper's thesis: the heuristic belongs in choosing which domains to consider.
@@ -437,21 +437,21 @@ A natural objection to FGDS is that any small exhaustive search might do well---
 \subsection{Statistical significance}
 
 \begin{table}[t]
-\centering
-\caption{Wilcoxon signed-rank tests (reconstruction PSNR, one-sided, \mbox{$n=10$}). \mbox{$W^+$} is the positive-rank sum; all comparisons win on all ten images.}
-\label{tab:wilcoxon}
-\begin{tabular}{lrrr}
-\toprule
-\textbf{Comparison} & \textbf{Mean \mbox{$\Delta$}PSNR} & \mbox{$W^+$} & \mbox{$p$} \\
-\midrule
-FGDS-40 vs.\ PSO             & +1.93 & 55 & \mbox{$<0.01$} \\
-FGDS-40 vs.\ Memetic PSO     & +1.65 & 55 & \mbox{$<0.01$} \\
-FGDS-40 vs.\ FG-PSO          & +0.53 & 55 & \mbox{$<0.01$} \\
-FGDS+GA-80 vs.\ PSO          & +2.39 & 55 & \mbox{$<0.01$} \\
-FGDS+GA-80 vs.\ FGDS-80      & +0.05 & 55 & \mbox{$<0.01$} \\
-FGDS-80 vs.\ Random-80   & +3.25 & 55 & \mbox{$<0.01$} \\
-\bottomrule
-\end{tabular}
+    \centering
+    \caption{Wilcoxon signed-rank tests (reconstruction PSNR, one-sided, \mbox{$n=10$}). \mbox{$W^+$} is the positive-rank sum; all comparisons win on all ten images.}
+    \label{tab:wilcoxon}
+    \begin{tabular}{lrrr}
+        \toprule
+        \textbf{Comparison}      & \textbf{Mean \mbox{$\Delta$}PSNR} & \mbox{$W^+$} & \mbox{$p$}     \\
+        \midrule
+        FGDS-40 vs.\ PSO         & +1.93                             & 55           & \mbox{$<0.01$} \\
+        FGDS-40 vs.\ Memetic PSO & +1.65                             & 55           & \mbox{$<0.01$} \\
+        FGDS-40 vs.\ FG-PSO      & +0.53                             & 55           & \mbox{$<0.01$} \\
+        FGDS+GA-80 vs.\ PSO      & +2.39                             & 55           & \mbox{$<0.01$} \\
+        FGDS+GA-80 vs.\ FGDS-80  & +0.05                             & 55           & \mbox{$<0.01$} \\
+        FGDS-80 vs.\ Random-80   & +3.25                             & 55           & \mbox{$<0.01$} \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 
 With \mbox{$n\!=\!10$} paired images and FGDS winning every pair, each test attains \mbox{$W^+\!=\!55$}, \mbox{$W^-\!=\!0$}, and exact one-sided \mbox{$p=1/2^{10}=0.00098$} (Table~\ref{tab:wilcoxon}). Every claim in the paper---superiority over each PSO variant, the positive GA gain, and the advantage over a random pool---is statistically significant.
@@ -498,7 +498,7 @@ With \mbox{$n\!=\!10$} paired images and FGDS winning every pair, each test atta
     \label{fig:visual}
 \end{figure*}
 
-Figure~\ref{fig:visual} shows representative reconstructions. Across the three examples, FGDS+GA preserves the dominant spatial structures and smooth regions under the common FIC code structure.
+Figure~\ref{fig:visual} shows representative reconstructions. Across the three examples, FGDS+GA preserves the dominant spatial structures and smooth regions under the common FIC code~structure.
 
 
 %% ================================================================
