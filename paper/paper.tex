@@ -1,4 +1,4 @@
-\documentclass[conference]{IEEEtran}
+\documentclass[conference, a4paper]{IEEEtran}
 \IEEEoverridecommandlockouts
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
@@ -11,7 +11,7 @@
 \usepackage{booktabs}
 \usepackage{stfloats}
 \usepackage[
-  letterpaper,
+  a4paper,
   left=19mm,
   textwidth=175mm,
   top=25mm,
@@ -68,7 +68,7 @@
 \title{\fontsize{14}{16}\selectfont\bfseries Feature-Guided Domain Selection for\\ High-Resolution Fractal Image Compression}
 
 \author{
-\IEEEauthorblockN{\textsuperscript{1,*}Zhen-Rong Wu and \textsuperscript{1}Liang-Yun Ko}
+\IEEEauthorblockN{\textsuperscript{1,*}Zhen-Rong Wu (吳振榮) and \textsuperscript{1}Liang-Yun Ko (柯良運)}
 \IEEEauthorblockA{\textsuperscript{1}Department of Computer Science and Information Engineering,\\
 National Taiwan Normal University, Taipei City, Taiwan,\\
 E-mail: 41247012S@ntnu.edu.tw}
@@ -177,7 +177,7 @@ Since \mbox{$(d,k)$} is already evaluated, only the other seven isometries are n
     d^*=\arg\min_{d'\in\{d\}\cup\mathcal{N}_8(d)} f(d',k^*),
     \label{eq:spatial_ls}
 \end{equation}
-again at most eight new evaluations (fewer on boundaries). All LS evaluations count against the FFE~budget. This is the first finding: local search reliably raises PSNR but costs time~(Section~\ref{sec:exp1}).
+again at most eight new evaluations (fewer on boundaries). All LS evaluations count against the FFE~budget. This is the first finding: local search reliably raises PSNR within the same FFE budget~(Section~\ref{sec:exp1}).
 
 \subsection{Feature-Guided PSO (FG-PSO)}
 This observation motivated restricting the search space of the PSO. FG-PSO first builds, for each range block, a feature-guided candidate pool of \mbox{$K$}~domains (Section~\ref{sec:proposed}), then runs the same memetic PSO inside the reduced subspace \mbox{$[0,K\!-\!1]\times[0,7]$}~rather than the full pool. Shrinking the space from approximately \mbox{$5\times10^5$} to \mbox{$K\!\times\!8$}~candidates lets a small swarm cover a meaningful fraction of it, and FG-PSO outperforms both baseline PSO variants. This stage is kept as a development baseline because it isolates the effect of feature-guided pool construction before the optimizer is removed.
@@ -198,7 +198,7 @@ FGDS replaces metaheuristic block matching with feature-guided block selection f
 \[
     \to\text{KD-Tree NN}\to\text{Candidate Pool}\to\text{Exhaustive Search}.
 \]
-An offline Genetic Algorithm (Section~\ref{sec:ga_weights}) learns the feature weights once and is not part of per-image encoding.
+An offline Genetic Algorithm (Section~\ref{sec:ga_weights}) learns the feature weights once and is not part of per-image encoding. Algorithm~\ref{alg:fgds} summarizes the full pipeline.
 
 \begin{algorithm}[t]
     \caption{FGDS Encoding Pipeline}
@@ -343,7 +343,7 @@ E1 fixes \mbox{$K\!=\!40$} because that was the pool size used by FG-PSO in the 
     \end{tabular}
 \end{table*}
 
-Table~\ref{tab:results} traces the full trail. Memetic PSO improves PSO on every image (+0.28~dB average) but adds cost. FG-PSO then gains +1.12~dB by searching a feature-guided pool, showing that \emph{search-space quality} is the missing factor. Replacing the inner PSO with exhaustive search over the same \mbox{$K\!=\!40$} pool---FGDS---adds another +0.53~dB with fewer FFEs (\mbox{$320$} vs.\ 800), no randomness, and much less time.
+Table~\ref{tab:results} traces the full trail. Memetic PSO improves PSO on every image (+0.28~dB average at comparable wall-clock). FG-PSO then gains +1.12~dB by searching a feature-guided pool, showing that \emph{search-space quality} is the missing factor. Replacing the inner PSO with exhaustive search over the same \mbox{$K\!=\!40$} pool---FGDS---adds another +0.53~dB with fewer FFEs (\mbox{$320$} vs.\ 800), no randomness, and much less time.
 
 \textbf{Magnitude and speed.} FGDS exceeds PSO by 1.26--3.22~dB (mean~+1.93), memetic PSO by 1.13--2.72~dB (mean~+1.65), and FG-PSO by 0.42--0.69~dB (mean~+0.53), while averaging 358~s per image against 1420~s, 1317~s, and 1269~s, respectively. The time is for one encode per method; the saving comes from the compact \mbox{$320$}-FFE per-range search, and Section~\ref{sec:exp2} adds preprocessing time for the final \mbox{$K\!=\!80$} KD-Tree setting.
 
@@ -382,7 +382,7 @@ Two questions are answered in Table~\ref{tab:exp2}.
 
 \textbf{What does the GA add?} Learned weights raise PSNR on all ten images by +0.01~to~+0.09~dB (mean~+0.05~dB, 31.21\mbox{$\to$}31.26), reduce encoder-side MSE (56.27\mbox{$\to$}55.60), and add no per-image encoding cost. The gain is small but uniformly positive (Wilcoxon \mbox{$W^+\!=\!55$}, \mbox{$p\!<\!0.01$}) and matches Section~\ref{sec:generalize}: the held-out training image learns to down-weight the offset-absorbed mean and up-weight the contrast-driving standard deviation. Thus GA is not the main source of improvement; it only learns transferable feature importance.
 
-Figure~\ref{fig:conv_0030} shows the three variants on image 0030; the curves are visually indistinguishable, reflecting the near-identical PSNR, with the GA curve marginally on top.
+Figure~\ref{fig:conv_0030} shows the three variants on image 0030; the curves are visually indistinguishable, reflecting the near-identical PSNR, with the GA curve marginally on top. Representative reconstructions are shown in Fig.~\ref{fig:visual}.
 
 \begin{figure}[t]
     \centering
@@ -390,6 +390,47 @@ Figure~\ref{fig:conv_0030} shows the three variants on image 0030; the curves ar
     \caption{E2 convergence on image~0030. Pairwise and KD-Tree coincide exactly; KD-Tree+GA is marginally higher. All saturate at \mbox{$K\!\times\!8\!=\!640$}~FFEs.}
     \label{fig:conv_0030}
 \end{figure}
+
+\begin{figure*}[t]
+    \centering
+    \begin{minipage}{0.145\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0007_original.png}\\[-2pt]
+        {\scriptsize 0007 original}
+    \end{minipage}
+    \hspace{0.006\textwidth}
+    \begin{minipage}{0.145\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0007_fgds_ga_reconstructed.png}\\[-2pt]
+        {\scriptsize 0007 FGDS+GA}
+    \end{minipage}
+    \hspace{0.014\textwidth}
+    \begin{minipage}{0.145\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0030_original.png}\\[-2pt]
+        {\scriptsize 0030 original}
+    \end{minipage}
+    \hspace{0.006\textwidth}
+    \begin{minipage}{0.145\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}\\[-2pt]
+        {\scriptsize 0030 FGDS+GA}
+    \end{minipage}
+    \hspace{0.014\textwidth}
+    \begin{minipage}{0.145\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0060_original.png}\\[-2pt]
+        {\scriptsize 0060 original}
+    \end{minipage}
+    \hspace{0.006\textwidth}
+    \begin{minipage}{0.145\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/0060_fgds_ga_reconstructed.png}\\[-2pt]
+        {\scriptsize 0060 FGDS+GA}
+    \end{minipage}
+    \caption{Visual comparison of original images and FGDS+GA reconstructions at \mbox{$K=80$}.}
+    \label{fig:visual}
+\end{figure*}
 
 \subsection{E3: Choosing the pool size \mbox{$K$}}
 
@@ -467,62 +508,24 @@ A natural objection is that any small exhaustive search might do well. E4 replac
 
 With \mbox{$n\!=\!10$} paired images and FGDS winning every pair, each test attains \mbox{$W^+\!=\!55$}, \mbox{$W^-\!=\!0$}, and exact one-sided \mbox{$p=1/2^{10}=0.00098$} (Table~\ref{tab:wilcoxon}). Thus the gains over PSO variants, the positive GA gain, and the random-pool advantage are all significant.
 
-\begin{figure*}[!b]
-    \centering
-    \begin{minipage}{0.13\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/0007_original.png}\\[-2pt]
-        {\scriptsize 0007 original}
-    \end{minipage}
-    \hspace{0.006\textwidth}
-    \begin{minipage}{0.13\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/0007_fgds_ga_reconstructed.png}\\[-2pt]
-        {\scriptsize 0007 FGDS+GA}
-    \end{minipage}
-    \hspace{0.012\textwidth}
-    \begin{minipage}{0.13\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/0030_original.png}\\[-2pt]
-        {\scriptsize 0030 original}
-    \end{minipage}
-    \hspace{0.006\textwidth}
-    \begin{minipage}{0.13\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/0030_fgds_ga_reconstructed.png}\\[-2pt]
-        {\scriptsize 0030 FGDS+GA}
-    \end{minipage}
-    \hspace{0.012\textwidth}
-    \begin{minipage}{0.13\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/0060_original.png}\\[-2pt]
-        {\scriptsize 0060 original}
-    \end{minipage}
-    \hspace{0.006\textwidth}
-    \begin{minipage}{0.13\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/0060_fgds_ga_reconstructed.png}\\[-2pt]
-        {\scriptsize 0060 FGDS+GA}
-    \end{minipage}
-    \caption{Original images and FGDS+GA reconstructions at \mbox{$K=80$}.}
-    \label{fig:visual}
-\end{figure*}
-
 %% ================================================================
 \section{Discussion and Limitations}
 %% ================================================================
 
-The results should be read as evidence for search-space construction, not as a codec-level state-of-the-art claim. The GA weighting gives only a small PSNR gain (+0.05~dB on average), while the main improvement comes from feature-guided selection. The study is limited to grayscale images, fixed block sizes, a fixed code structure, and PSNR measured before coefficient quantization; color images, adaptive partitions, other bit rates, and bitstream-decoded PSNR remain future work.
+The results should be read as evidence for search-space construction, not as a codec-level state-of-the-art claim. The central observation is that the PSO-family methods are not weak because they are stochastic, but because they spend their budget in a poorly organized candidate space. Once feature guidance supplies a compact pool, exhaustive evaluation is both simpler and stronger than an inner metaheuristic.
+
+The GA weighting supports this view: its PSNR gain is small (+0.05~dB on average), but consistently positive, suggesting that the relative feature weights capture properties of the affine FIC model rather than image-specific content. The main limitation is scope. The experiments use grayscale images, fixed block sizes, a fixed code structure, and PSNR measured before coefficient quantization; color images, adaptive partitions, rate-controlled coding, and bitstream-decoded PSNR remain future work.
 
 
 %% ================================================================
 \section{Conclusion}
 %% ================================================================
 
-This work shows that high-resolution FIC is limited less by the optimizer than by candidate-space quality. FGDS shifts the heuristic from block \emph{matching} to block \emph{selection} using isometry-robust features, KD-Tree retrieval, and offline GA-learned weights. It improves PSNR over PSO by 1.93~dB at \mbox{$K\!=\!40$} and 2.39~dB at \mbox{$K\!=\!80$} (with GA), with all gains significant at \mbox{$p<0.01$}. The random-pool control confirms that the improvement comes from feature-guided selection rather than search-space reduction alone.
+This work shows that high-resolution FIC is limited less by the optimizer than by candidate-space quality. FGDS shifts the heuristic from block \emph{matching} to block \emph{selection} using isometry-robust features, KD-Tree retrieval, and offline GA-learned weights. It improves PSNR over PSO by 1.93~dB at \mbox{$K\!=\!40$} and 2.39~dB at \mbox{$K\!=\!80$} (with GA), and the random-pool control verifies that feature guidance drives the improvement.
+
+The broader lesson is that, for combinatorial image-coding problems, a metaheuristic may be more useful for shaping the search space than for searching every block directly. Future extensions should combine FGDS with adaptive \mbox{$K$}, learned descriptors, and rate-aware quantization so that the same selection principle can be evaluated in a complete codec.
 
 \bibliographystyle{IEEEtran}
-\IEEEtriggeratref{19}
 \bibliography{references}
 
 \vspace{12pt}
